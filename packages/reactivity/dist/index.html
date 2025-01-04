@@ -17,10 +17,18 @@
       age: 18,
     });
 
-    state.name = "xiaohong";
+    // state.name = "xiaohong";
 
     effect(() => {
-      document.getElementById("app").innerHTML = state.name;
+      console.log(state.name);
+      //   console.log(state.age);
+
+      effect(() => {
+        console.log(state.name);
+      });
+      //   console.log(state.age);
+
+      //   document.getElementById("app").innerHTML = state.name;
     });
 
     // setTimeout(() => {

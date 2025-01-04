@@ -1,4 +1,4 @@
-export function effect(fn) {
+export function effect(fn: any) {
   const _effect = new ReactiveEffect(fn, () => {
     if (this.scheduler) {
       this.scheduler();
@@ -11,14 +11,35 @@ export function effect(fn) {
 
 export let activeEffect;
 class ReactiveEffect {
-  constructor(public fn, public scheduler?) {
+  public active: boolean = true;
+  track_id = 0;
+  depsLength = 0;
+  deps = [];
+
+  constructor(public fn: () => void, public scheduler?: () => void) {
     this.fn = fn;
     this.scheduler = scheduler;
   }
 
-  // 保存当前的effect到全局变量
-  activeEffect = this;
   run() {
-    this.fn();
+    if (!this.active) {
+      return this.fn();
+    }
+    // 保留上一次的effect，避免effect 嵌套导致effect的依赖收集错误，保证最后一次的effect是正确
+    let nextActiveEffrct = activeEffect;
+    try {
+      // 保存当前的effect到全局变量
+      activeEffect = this;
+      return this.fn();
+    } finally {
+      activeEffect = nextActiveEffrct;
+    }
   }
+}
+
+export function trackEffect(effect, dep) {
+  // 添加依赖
+  dep.set(effect, effect.track_id);
+  effect.deps[effect.depsLength++] = dep;
+  console.log(effect.deps);
 }

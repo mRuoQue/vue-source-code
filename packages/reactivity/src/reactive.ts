@@ -2,10 +2,10 @@ import { isObject } from "@vue/shared";
 import { baseHandlers, ReactiveFlags } from "./baseHandler";
 
 export function reactive(target) {
-  return createReactiveObject(target, baseHandlers);
+  return createReactiveObject(target);
 }
 
-function createReactiveObject(target, baseHandlers) {
+function createReactiveObject(target) {
   if (!isObject(target)) {
     return true;
   }
