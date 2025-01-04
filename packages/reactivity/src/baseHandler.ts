@@ -1,4 +1,4 @@
-import { track } from "./reactiveEffect";
+import { track, trigger } from "./reactiveEffect";
 export enum ReactiveFlags {
   IS_REACTIVE = "__v_isReactive", // 是否是响应式对象,如果是则不在代理
   IS_READONLY = "__v_isReadonly",
@@ -18,6 +18,13 @@ export const baseHandlers: ProxyHandler<any> = {
   },
 
   set(target, key, value, receiver) {
-    return Reflect.set(target, key, value, receiver);
+    let oldValue = target[key];
+
+    let res = Reflect.set(target, key, value, receiver);
+    // 触发页面更新
+    if (oldValue !== value) {
+      trigger(target, key, value, oldValue);
+    }
+    return res;
   },
 };

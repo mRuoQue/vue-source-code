@@ -6,9 +6,7 @@ function isObject(obj) {
 // packages/reactivity/src/effect.ts
 function effect(fn) {
   const _effect = new ReactiveEffect(fn, () => {
-    if (this.scheduler) {
-      this.scheduler();
-    }
+    _effect.run();
   });
   _effect.run();
   return _effect;
@@ -38,10 +36,17 @@ var ReactiveEffect = class {
     }
   }
 };
-function trackEffect(effect3, dep) {
-  dep.set(effect3, effect3.track_id);
-  effect3.deps[effect3.depsLength++] = dep;
-  console.log(effect3.deps);
+function trackEffect(effect2, dep) {
+  dep.set(effect2, effect2.track_id);
+  effect2.deps[effect2.depsLength++] = dep;
+}
+function triggerEffect(dep) {
+  const effects = dep.keys();
+  effects.forEach((effect2) => {
+    if (effect2.scheduler) {
+      effect2.scheduler();
+    }
+  });
 }
 
 // packages/reactivity/src/reactiveEffect.ts
@@ -57,7 +62,6 @@ function track(target, key) {
       depMap.set(key, dep = createDep(() => depMap.delete(key), key));
     }
     trackEffect(activeEffect, dep);
-    console.log(targetMap);
   }
 }
 function createDep(clear, key) {
@@ -65,6 +69,16 @@ function createDep(clear, key) {
   dep.delete = clear;
   dep.name = key;
   return dep;
+}
+function trigger(targer, key, value, oldValue) {
+  let depMap = targetMap.get(targer);
+  if (!depMap) {
+    return;
+  }
+  let dep = depMap.get(key);
+  if (dep) {
+    triggerEffect(dep);
+  }
 }
 
 // packages/reactivity/src/baseHandler.ts
@@ -77,7 +91,12 @@ var baseHandlers = {
     return Reflect.get(target, key, receiver);
   },
   set(target, key, value, receiver) {
-    return Reflect.set(target, key, value, receiver);
+    let oldValue = target[key];
+    let res = Reflect.set(target, key, value, receiver);
+    if (oldValue !== value) {
+      trigger(target, key, value, oldValue);
+    }
+    return res;
   }
 };
 

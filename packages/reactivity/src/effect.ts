@@ -1,8 +1,6 @@
 export function effect(fn: any) {
   const _effect = new ReactiveEffect(fn, () => {
-    if (this.scheduler) {
-      this.scheduler();
-    }
+    _effect.run();
   });
 
   _effect.run();
@@ -10,6 +8,13 @@ export function effect(fn: any) {
 }
 
 export let activeEffect;
+/**
+ * 依赖收集
+ * @param fn 执行函数
+ * @param scheduler 触发函数
+ * @returns ReactiveEffect
+ * @example effect(() => {})
+ */
 class ReactiveEffect {
   public active: boolean = true;
   track_id = 0;
@@ -41,5 +46,13 @@ export function trackEffect(effect, dep) {
   // 添加依赖
   dep.set(effect, effect.track_id);
   effect.deps[effect.depsLength++] = dep;
-  console.log(effect.deps);
+}
+
+export function triggerEffect(dep) {
+  const effects = dep.keys();
+  effects.forEach((effect) => {
+    if (effect.scheduler) {
+      effect.scheduler();
+    }
+  });
 }

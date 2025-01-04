@@ -20,20 +20,13 @@
     // state.name = "xiaohong";
 
     effect(() => {
-      console.log(state.name);
-      //   console.log(state.age);
-
-      effect(() => {
-        console.log(state.name);
-      });
-      //   console.log(state.age);
-
-      //   document.getElementById("app").innerHTML = state.name;
+      console.log(state.age);
+      document.getElementById("app").innerHTML = state.age;
     });
 
-    // setTimeout(() => {
-    //   state.name = "xiaohong";
-    // }, 2000);
+    setTimeout(() => {
+      state.age++;
+    }, 2000);
   </script>
   <body>
     <div id="app"></div>
