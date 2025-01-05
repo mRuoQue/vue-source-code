@@ -19,29 +19,34 @@
       flag: true,
     });
 
+    effect(() => {
+      domApp.innerHTML = state.name;
+      state.name = Math.random();
+    });
+
     // state.name = "xiaohong";
 
-    const runner = effect(
-      () => {
-        console.log("effect自动执行了...");
-        domApp.innerHTML = state.flag ? state.name : state.age;
-        // domApp.innerHTML = state.flag + state.flag + state.age;
-      },
-      {
-        scheduler: () => {
-          console.log("用户自己手动更新...");
-          runner();
-        },
-      }
-    );
+    // const runner = effect(
+    //   () => {
+    //     console.log("effect自动执行了...");
+    //     domApp.innerHTML = state.flag ? state.name : state.age;
+    //     // domApp.innerHTML = state.flag + state.flag + state.age;
+    //   },
+    //   {
+    //     scheduler: () => {
+    //       console.log("用户自己手动更新...");
+    //       runner();
+    //     },
+    //   }
+    // );
 
-    setTimeout(() => {
-      state.flag = false;
-      setTimeout(() => {
-        console.log("change name...");
-        state.name = "xiaohong";
-      }, 2000);
-    }, 2000);
+    // setTimeout(() => {
+    //   state.flag = false;
+    //   setTimeout(() => {
+    //     console.log("change name...");
+    //     state.name = "xiaohong";
+    //   }, 2000);
+    // }, 2000);
   </script>
   <body>
     <div id="app"></div>

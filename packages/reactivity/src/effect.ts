@@ -27,8 +27,9 @@ export function effect(fn: any, options?) {
  */
 class ReactiveEffect {
   public active: boolean = true;
-  track_id = 0; // 记录执行的次数，避免同一个属性多次收集
-  depsLength = 0;
+  _running = 0; // effec.run()运行中 （避免死循环，state改变，循环调用scheduler）
+  _trackId = 0; // 记录执行的次数，避免同一个属性多次收集
+  _depsLength = 0;
   deps = []; // 反向记录effect，方便后续diff，最大量复用依赖
 
   constructor(public fn: () => void, public scheduler?: () => void) {
@@ -45,11 +46,13 @@ class ReactiveEffect {
     try {
       // 保存当前的effect到全局变量
       activeEffect = this;
-      console.log("run ...");
+      // console.log("effect run ...");
       // 清除上次的依赖
       cleanupPreEffect(this);
+      this._running++;
       return this.fn();
     } finally {
+      this._running--;
       overflowDepEffect(this);
       activeEffect = nextActiveEffrct;
     }
@@ -58,8 +61,8 @@ class ReactiveEffect {
 
 // 清除上一次的依赖关系，重新diff 依赖，最大限度复用
 function cleanupPreEffect(effect) {
-  effect.depsLength = 0;
-  effect.track_id++;
+  effect._depsLength = 0;
+  effect._trackId++;
 }
 // 清除依赖
 function cleanupDepEffect(dep, effect) {
@@ -71,8 +74,8 @@ function cleanupDepEffect(dep, effect) {
 
 // 溢出的依赖，需要清除掉
 function overflowDepEffect(effect) {
-  if (effect.depsLength < effect.deps.length) {
-    for (let i = effect.depsLength; i < effect.deps.length; i++) {
+  if (effect._depsLength < effect.deps.length) {
+    for (let i = effect._depsLength; i < effect.deps.length; i++) {
       let dep = effect.deps[i];
       cleanupDepEffect(dep, effect);
     }
@@ -82,16 +85,16 @@ function overflowDepEffect(effect) {
 /***
  * 添加依赖,如果需要重新收集依赖，尽可能复用旧的依赖，不需要的清除掉
  * @param effect 当前的effect
- * @param dep 当前的依赖 -> {ReactiveEffect, track_id}
+ * @param dep 当前的依赖 -> {ReactiveEffect, _trackId}
  */
 export function trackEffect(effect, dep) {
   // 优化多次收集相同属性
-  if (effect.track_id !== dep.get(effect)) {
+  if (effect._trackId !== dep.get(effect)) {
     // 添加依赖
-    dep.set(effect, effect.track_id);
+    dep.set(effect, effect._trackId);
 
     // 取之前的effect
-    const oldDep = effect.deps[effect.depsLength];
+    const oldDep = effect.deps[effect._depsLength];
     // 没oldDep，说明是新的依赖，需要保存到effect中
     if (oldDep !== dep) {
       // 保存过，需要删除旧的依赖
@@ -99,10 +102,10 @@ export function trackEffect(effect, dep) {
         cleanupDepEffect(oldDep, effect);
       }
       // 保存依赖到effect中,最新的dep
-      effect.deps[effect.depsLength++] = dep;
+      effect.deps[effect._depsLength++] = dep;
     } else {
       // 相同，说明是同一个依赖，不用重复收集,比较下一个
-      effect.depsLength++;
+      effect._depsLength++;
     }
   }
 }
@@ -110,8 +113,10 @@ export function trackEffect(effect, dep) {
 export function triggerEffect(dep) {
   const effects = dep.keys();
   effects.forEach((effect) => {
-    if (effect.scheduler) {
-      effect.scheduler();
+    if (!effect._running) {
+      if (effect.scheduler) {
+        effect.scheduler();
+      }
     }
   });
 }

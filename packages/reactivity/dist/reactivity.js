@@ -23,9 +23,11 @@ var ReactiveEffect = class {
     this.fn = fn;
     this.scheduler = scheduler;
     this.active = true;
-    this.track_id = 0;
+    this._running = 0;
+    // effec.run()运行中 （避免死循环，state改变，循环调用scheduler）
+    this._trackId = 0;
     // 记录执行的次数，避免同一个属性多次收集
-    this.depsLength = 0;
+    this._depsLength = 0;
     this.deps = [];
     this.fn = fn;
     this.scheduler = scheduler;
@@ -37,18 +39,19 @@ var ReactiveEffect = class {
     let nextActiveEffrct = activeEffect;
     try {
       activeEffect = this;
-      console.log("run ...");
       cleanupPreEffect(this);
+      this._running++;
       return this.fn();
     } finally {
+      this._running--;
       overflowDepEffect(this);
       activeEffect = nextActiveEffrct;
     }
   }
 };
 function cleanupPreEffect(effect2) {
-  effect2.depsLength = 0;
-  effect2.track_id++;
+  effect2._depsLength = 0;
+  effect2._trackId++;
 }
 function cleanupDepEffect(dep, effect2) {
   dep.delete(effect2);
@@ -57,32 +60,34 @@ function cleanupDepEffect(dep, effect2) {
   }
 }
 function overflowDepEffect(effect2) {
-  if (effect2.depsLength < effect2.deps.length) {
-    for (let i = effect2.depsLength; i < effect2.deps.length; i++) {
+  if (effect2._depsLength < effect2.deps.length) {
+    for (let i = effect2._depsLength; i < effect2.deps.length; i++) {
       let dep = effect2.deps[i];
       cleanupDepEffect(dep, effect2);
     }
   }
 }
 function trackEffect(effect2, dep) {
-  if (effect2.track_id !== dep.get(effect2)) {
-    dep.set(effect2, effect2.track_id);
-    const oldDep = effect2.deps[effect2.depsLength];
+  if (effect2._trackId !== dep.get(effect2)) {
+    dep.set(effect2, effect2._trackId);
+    const oldDep = effect2.deps[effect2._depsLength];
     if (oldDep !== dep) {
       if (oldDep) {
         cleanupDepEffect(oldDep, effect2);
       }
-      effect2.deps[effect2.depsLength++] = dep;
+      effect2.deps[effect2._depsLength++] = dep;
     } else {
-      effect2.depsLength++;
+      effect2._depsLength++;
     }
   }
 }
 function triggerEffect(dep) {
   const effects = dep.keys();
   effects.forEach((effect2) => {
-    if (effect2.scheduler) {
-      effect2.scheduler();
+    if (!effect2._running) {
+      if (effect2.scheduler) {
+        effect2.scheduler();
+      }
     }
   });
 }
