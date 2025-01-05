@@ -5,12 +5,17 @@ function isObject(obj) {
 
 // packages/reactivity/src/effect.ts
 var activeEffect;
-function effect(fn) {
+function effect(fn, options) {
   const _effect = new ReactiveEffect(fn, () => {
     _effect.run();
   });
   _effect.run();
-  return _effect;
+  if (options) {
+    Object.assign(_effect, options);
+  }
+  const runner = _effect.run.bind(_effect);
+  runner.effect = _effect;
+  return runner;
 }
 var ReactiveEffect = class {
   // 反向记录effect，方便后续diff，最大量复用依赖

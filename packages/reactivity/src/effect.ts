@@ -1,12 +1,21 @@
 export let activeEffect;
 
-export function effect(fn: any) {
+export function effect(fn: any, options?) {
   const _effect = new ReactiveEffect(fn, () => {
     _effect.run();
   });
 
   _effect.run();
-  return _effect;
+
+  // 添加options，手动更新scheduler
+  if (options) {
+    Object.assign(_effect, options);
+  }
+  // 方便用户手动调用
+  const runner = _effect.run.bind(_effect);
+  // 暴漏出去effect的引用
+  runner.effect = _effect;
+  return runner;
 }
 
 /**

@@ -21,11 +21,19 @@
 
     // state.name = "xiaohong";
 
-    effect(() => {
-      console.log("effect执行了...");
-      domApp.innerHTML = state.flag ? state.name : state.age;
-      // domApp.innerHTML = state.flag + state.flag + state.age;
-    });
+    const runner = effect(
+      () => {
+        console.log("effect自动执行了...");
+        domApp.innerHTML = state.flag ? state.name : state.age;
+        // domApp.innerHTML = state.flag + state.flag + state.age;
+      },
+      {
+        scheduler: () => {
+          console.log("用户自己手动更新...");
+          runner();
+        },
+      }
+    );
 
     setTimeout(() => {
       state.flag = false;
