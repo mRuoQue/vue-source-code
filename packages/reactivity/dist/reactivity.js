@@ -4,6 +4,7 @@ function isObject(obj) {
 }
 
 // packages/reactivity/src/effect.ts
+var activeEffect;
 function effect(fn) {
   const _effect = new ReactiveEffect(fn, () => {
     _effect.run();
@@ -11,13 +12,14 @@ function effect(fn) {
   _effect.run();
   return _effect;
 }
-var activeEffect;
 var ReactiveEffect = class {
+  // 反向记录effect，方便后续diff，最大量复用依赖
   constructor(fn, scheduler) {
     this.fn = fn;
     this.scheduler = scheduler;
     this.active = true;
     this.track_id = 0;
+    // 记录执行的次数，避免同一个属性多次收集
     this.depsLength = 0;
     this.deps = [];
     this.fn = fn;
@@ -30,15 +32,37 @@ var ReactiveEffect = class {
     let nextActiveEffrct = activeEffect;
     try {
       activeEffect = this;
+      console.log("run ...");
+      cleanupPreEffect(this);
       return this.fn();
     } finally {
       activeEffect = nextActiveEffrct;
     }
   }
 };
+function cleanupPreEffect(effect2) {
+  effect2.depsLength = 0;
+  effect2.track_id++;
+}
+function cleanupDepEffect(dep, effect2) {
+  dep.delete(effect2);
+  if (dep.size == 0) {
+    dep?.cleanup();
+  }
+}
 function trackEffect(effect2, dep) {
-  dep.set(effect2, effect2.track_id);
-  effect2.deps[effect2.depsLength++] = dep;
+  if (effect2.track_id !== dep.get(effect2)) {
+    dep.set(effect2, effect2.track_id);
+    const oldDep = effect2.deps[effect2.depsLength];
+    if (oldDep !== dep) {
+      if (oldDep) {
+        cleanupDepEffect(oldDep, effect2);
+      }
+      effect2.deps[effect2.depsLength++] = dep;
+    } else {
+      effect2.depsLength++;
+    }
+  }
 }
 function triggerEffect(dep) {
   const effects = dep.keys();
@@ -64,9 +88,9 @@ function track(target, key) {
     trackEffect(activeEffect, dep);
   }
 }
-function createDep(clear, key) {
+function createDep(cleanup, key) {
   let dep = /* @__PURE__ */ new Map();
-  dep.delete = clear;
+  dep.cleanup = cleanup;
   dep.name = key;
   return dep;
 }

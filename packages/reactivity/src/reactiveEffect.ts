@@ -1,6 +1,18 @@
 import { activeEffect, triggerEffect, trackEffect } from "./effect";
 
 let targetMap = new WeakMap();
+/**
+ *
+ *  {name:'xiaoma',age:18} : {
+ *
+ *      name: {
+ *
+ *        effect : 0
+ *      }
+ *   }
+ * }
+ *
+ */
 
 // 依赖收集
 export function track(target, key) {
@@ -14,14 +26,14 @@ export function track(target, key) {
     if (!dep) {
       depMap.set(key, (dep = createDep(() => depMap.delete(key), key)));
     }
-    // 将effect 收集到dep中，state改变触发 dep种effect执行
+    // 将effect 收集到dep中，构建收集器集合
     trackEffect(activeEffect, dep);
   }
 }
 
-export function createDep(clear, key) {
+export function createDep(cleanup, key) {
   let dep = new Map() as any;
-  dep.delete = clear;
+  dep.cleanup = cleanup;
   dep.name = key;
 
   return dep;

@@ -6,6 +6,7 @@
     <title>Document</title>
   </head>
   <script type="module">
+    const domApp = document.getElementById("app");
     // import {
     //   reactive,
     //   effect,
@@ -15,17 +16,23 @@
     const state = reactive({
       name: "xiaoma",
       age: 18,
+      flag: true,
     });
 
     // state.name = "xiaohong";
 
     effect(() => {
-      console.log(state.age);
-      document.getElementById("app").innerHTML = state.age;
+      console.log("effect执行了...");
+      domApp.innerHTML = state.flag ? state.name : state.age;
+      // domApp.innerHTML = state.flag + state.flag + state.age;
     });
 
     setTimeout(() => {
-      state.age++;
+      state.flag = false;
+      setTimeout(() => {
+        console.log("change name...");
+        state.name = "xiaohong";
+      }, 2000);
     }, 2000);
   </script>
   <body>
