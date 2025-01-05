@@ -36,6 +36,7 @@ var ReactiveEffect = class {
       cleanupPreEffect(this);
       return this.fn();
     } finally {
+      overflowDepEffect(this);
       activeEffect = nextActiveEffrct;
     }
   }
@@ -48,6 +49,14 @@ function cleanupDepEffect(dep, effect2) {
   dep.delete(effect2);
   if (dep.size == 0) {
     dep?.cleanup();
+  }
+}
+function overflowDepEffect(effect2) {
+  if (effect2.depsLength < effect2.deps.length) {
+    for (let i = effect2.depsLength; i < effect2.deps.length; i++) {
+      let dep = effect2.deps[i];
+      cleanupDepEffect(dep, effect2);
+    }
   }
 }
 function trackEffect(effect2, dep) {

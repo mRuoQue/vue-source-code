@@ -41,6 +41,7 @@ class ReactiveEffect {
       cleanupPreEffect(this);
       return this.fn();
     } finally {
+      overflowDepEffect(this);
       activeEffect = nextActiveEffrct;
     }
   }
@@ -51,11 +52,21 @@ function cleanupPreEffect(effect) {
   effect.depsLength = 0;
   effect.track_id++;
 }
-
+// 清除依赖
 function cleanupDepEffect(dep, effect) {
   dep.delete(effect);
   if (dep.size == 0) {
     dep?.cleanup();
+  }
+}
+
+// 溢出的依赖，需要清除掉
+function overflowDepEffect(effect) {
+  if (effect.depsLength < effect.deps.length) {
+    for (let i = effect.depsLength; i < effect.deps.length; i++) {
+      let dep = effect.deps[i];
+      cleanupDepEffect(dep, effect);
+    }
   }
 }
 
