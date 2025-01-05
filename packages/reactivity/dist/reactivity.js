@@ -2,6 +2,9 @@
 function isObject(obj) {
   return obj !== null && typeof obj === "object";
 }
+function isFunction(obj) {
+  return typeof obj === "function";
+}
 
 // packages/reactivity/src/effect.ts
 var activeEffect;
@@ -28,11 +31,19 @@ var ReactiveEffect = class {
     this._trackId = 0;
     // 记录执行的次数，避免同一个属性多次收集
     this._depsLength = 0;
+    this._dirtyLevel = 4 /* Dirty */;
     this.deps = [];
     this.fn = fn;
     this.scheduler = scheduler;
   }
+  get dirty() {
+    return this._dirtyLevel === 4 /* Dirty */;
+  }
+  set dirty(value) {
+    this._dirtyLevel = value ? 4 /* Dirty */ : 2 /* Clean */;
+  }
   run() {
+    this._dirtyLevel = 0 /* NoDirty */;
     if (!this.active) {
       return this.fn();
     }
@@ -84,6 +95,9 @@ function trackEffect(effect2, dep) {
 function triggerEffect(dep) {
   const effects = dep.keys();
   effects.forEach((effect2) => {
+    if (effect2._dirtyLevel < 4 /* Dirty */) {
+      effect2._dirtyLevel = 4 /* Dirty */;
+    }
     if (!effect2._running) {
       if (effect2.scheduler) {
         effect2.scheduler();
@@ -173,19 +187,19 @@ function createRef(value) {
   return new RefImpl(value);
 }
 var RefImpl = class {
-  constructor(rwaValue) {
-    this.rwaValue = rwaValue;
+  constructor(rawValue) {
+    this.rawValue = rawValue;
     this.__v_isRef = true;
-    this.rwaValue = rwaValue;
-    this._value = toReactive(rwaValue);
+    this.rawValue = rawValue;
+    this._value = toReactive(rawValue);
   }
   get value() {
     trackRefValue(this);
     return this._value;
   }
   set value(newValue) {
-    if (newValue !== this.rwaValue) {
-      this.rwaValue = newValue;
+    if (newValue !== this.rawValue) {
+      this.rawValue = newValue;
       this._value = newValue;
       triggerRefValue(this);
     }
@@ -244,8 +258,50 @@ var ObjectRefImpl = class {
     this._object[this._key] = newValue;
   }
 };
+
+// packages/reactivity/src/computed.ts
+function computed(getterOptions) {
+  let getter;
+  let setter;
+  const getterFn = isFunction(getterOptions);
+  if (getterFn) {
+    getter = getterOptions;
+    setter = () => {
+      console.log("computed setter fn");
+    };
+  } else {
+    getter = getterOptions.get;
+    setter = getterOptions.set;
+  }
+  return new ComputedRefImpl(getter, setter);
+}
+var ComputedRefImpl = class {
+  // 计算属性的effect
+  constructor(getter, setter) {
+    this.getter = getter;
+    this.setter = setter;
+    this._effect = new ReactiveEffect(
+      () => getter(this._value),
+      () => {
+        triggerRefValue(this);
+      }
+    );
+  }
+  get value() {
+    if (this._effect.dirty) {
+      this._value = this._effect.run();
+      trackRefValue(this);
+    }
+    return this._value;
+  }
+  set value(newValue) {
+    this.setter = newValue;
+  }
+};
 export {
+  ReactiveEffect,
   activeEffect,
+  computed,
   effect,
   proxyRefs,
   reactive,
@@ -254,6 +310,8 @@ export {
   toRef,
   toRefs,
   trackEffect,
-  triggerEffect
+  trackRefValue,
+  triggerEffect,
+  triggerRefValue
 };
 //# sourceMappingURL=reactivity.js.map

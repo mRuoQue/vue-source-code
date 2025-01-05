@@ -14,9 +14,9 @@ class RefImpl {
   public __v_isRef = true; // 标识当前实例是否是ref类型
   public _value;
   public dep;
-  constructor(public rwaValue) {
-    this.rwaValue = rwaValue;
-    this._value = toReactive(rwaValue);
+  constructor(public rawValue) {
+    this.rawValue = rawValue;
+    this._value = toReactive(rawValue);
   }
   get value() {
     // 收集依赖
@@ -24,8 +24,8 @@ class RefImpl {
     return this._value;
   }
   set value(newValue) {
-    if (newValue !== this.rwaValue) {
-      this.rwaValue = newValue;
+    if (newValue !== this.rawValue) {
+      this.rawValue = newValue;
       this._value = newValue;
       // 触发更新
       triggerRefValue(this);
@@ -33,7 +33,7 @@ class RefImpl {
   }
 }
 
-function trackRefValue(ref) {
+export function trackRefValue(ref) {
   if (activeEffect) {
     trackEffect(
       activeEffect,
@@ -42,7 +42,7 @@ function trackRefValue(ref) {
   }
 }
 
-function triggerRefValue(ref) {
+export function triggerRefValue(ref) {
   if (ref.dep) {
     triggerEffect(ref.dep);
   }

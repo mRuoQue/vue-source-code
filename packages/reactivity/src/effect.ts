@@ -1,3 +1,4 @@
+import { DirtyLevels } from "./constant";
 export let activeEffect;
 
 export function effect(fn: any, options?) {
@@ -25,11 +26,12 @@ export function effect(fn: any, options?) {
  * @returns ReactiveEffect
  * @example effect(() => {})
  */
-class ReactiveEffect {
+export class ReactiveEffect {
   public active: boolean = true;
   _running = 0; // effec.run()运行中 （避免死循环，state改变，循环调用scheduler）
   _trackId = 0; // 记录执行的次数，避免同一个属性多次收集
   _depsLength = 0;
+  _dirtyLevel = DirtyLevels.Dirty;
   deps = []; // 反向记录effect，方便后续diff，最大量复用依赖
 
   constructor(public fn: () => void, public scheduler?: () => void) {
@@ -37,7 +39,15 @@ class ReactiveEffect {
     this.scheduler = scheduler;
   }
 
+  public get dirty() {
+    return this._dirtyLevel === DirtyLevels.Dirty;
+  }
+  public set dirty(value) {
+    this._dirtyLevel = value ? DirtyLevels.Dirty : DirtyLevels.Clean;
+  }
+
   run() {
+    this._dirtyLevel = DirtyLevels.NoDirty;
     if (!this.active) {
       return this.fn();
     }
@@ -113,6 +123,9 @@ export function trackEffect(effect, dep) {
 export function triggerEffect(dep) {
   const effects = dep.keys();
   effects.forEach((effect) => {
+    if (effect._dirtyLevel < DirtyLevels.Dirty) {
+      effect._dirtyLevel = DirtyLevels.Dirty;
+    }
     if (!effect._running) {
       if (effect.scheduler) {
         effect.scheduler();

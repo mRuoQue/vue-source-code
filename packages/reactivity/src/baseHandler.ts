@@ -1,11 +1,7 @@
 import { isObject } from "@vue/shared";
 import { track, trigger } from "./reactiveEffect";
 import { reactive } from "./reactive";
-export enum ReactiveFlags {
-  IS_REACTIVE = "__v_isReactive", // 是否是响应式对象,如果是则不在代理
-  IS_READONLY = "__v_isReadonly",
-  RAW = "__v_raw",
-}
+import { ReactiveFlags } from "./constant";
 
 export const baseHandlers: ProxyHandler<any> = {
   get(target, key, receiver) {

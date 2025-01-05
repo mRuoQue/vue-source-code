@@ -22,53 +22,25 @@
       toRef,
       toRefs,
       proxyRefs,
+      computed,
     } from "./reactivity.js";
 
-    const state = reactive({ name: "xiaoma", age: 18 });
+    const state = reactive({ name: "xiaoma" });
+    const c = computed(() => {
+      console.log("run ...");
 
-    const proxy = proxyRefs({ ...toRefs(state) });
-    console.log(proxy.name);
+      return "xxx--" + state.name;
+    });
 
     effect(() => {
-      domApp.innerHTML = proxy.name;
+      console.log(c.value);
+      console.log(c.value);
+      console.log(c.value);
     });
+
     setTimeout(() => {
-      proxy.name = "xxxx";
+      state.name = "daniel";
     }, 2000);
-    // const state = reactive({
-    //   name: "xiaoma",
-    //   age: 18,
-    //   flag: true,
-    // });
-
-    // effect(() => {
-    //   domApp.innerHTML = state.name;
-    //   state.name = Math.random();
-    // });
-
-    // state.name = "xiaohong";
-
-    // const runner = effect(
-    //   () => {
-    //     console.log("effect自动执行了...");
-    //     domApp.innerHTML = state.flag ? state.name : state.age;
-    //     // domApp.innerHTML = state.flag + state.flag + state.age;
-    //   },
-    //   {
-    //     scheduler: () => {
-    //       console.log("用户自己手动更新...");
-    //       runner();
-    //     },
-    //   }
-    // );
-
-    // setTimeout(() => {
-    //   state.flag = false;
-    //   setTimeout(() => {
-    //     console.log("change name...");
-    //     state.name = "xiaohong";
-    //   }, 2000);
-    // }, 2000);
   </script>
   <body>
     <div id="app"></div>

@@ -1,5 +1,6 @@
 import { isObject } from "@vue/shared";
-import { baseHandlers, ReactiveFlags } from "./baseHandler";
+import { baseHandlers } from "./baseHandler";
+import { ReactiveFlags } from "./constant";
 
 export function reactive(target) {
   return createReactiveObject(target);
