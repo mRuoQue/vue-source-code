@@ -16,3 +16,7 @@ function createReactiveObject(target) {
 
   return proxy;
 }
+
+export function toReactive(value) {
+  return isObject(value) ? reactive(value) : value;
+}

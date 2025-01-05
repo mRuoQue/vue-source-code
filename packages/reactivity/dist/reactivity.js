@@ -161,8 +161,99 @@ function createReactiveObject(target) {
   const proxy = new Proxy(target, baseHandlers);
   return proxy;
 }
+function toReactive(value) {
+  return isObject(value) ? reactive(value) : value;
+}
+
+// packages/reactivity/src/ref.ts
+function ref(value) {
+  return createRef(value);
+}
+function createRef(value) {
+  return new RefImpl(value);
+}
+var RefImpl = class {
+  constructor(rwaValue) {
+    this.rwaValue = rwaValue;
+    this.__v_isRef = true;
+    this.rwaValue = rwaValue;
+    this._value = toReactive(rwaValue);
+  }
+  get value() {
+    trackRefValue(this);
+    return this._value;
+  }
+  set value(newValue) {
+    if (newValue !== this.rwaValue) {
+      this.rwaValue = newValue;
+      this._value = newValue;
+      triggerRefValue(this);
+    }
+  }
+};
+function trackRefValue(ref2) {
+  if (activeEffect) {
+    trackEffect(
+      activeEffect,
+      ref2.dep = createDep(() => ref2.dep = void 0, "undefined")
+    );
+  }
+}
+function triggerRefValue(ref2) {
+  if (ref2.dep) {
+    triggerEffect(ref2.dep);
+  }
+}
+function toRef(object, key) {
+  return new ObjectRefImpl(object, key);
+}
+function toRefs(object) {
+  let res = {};
+  for (const key in object) {
+    res[key] = toRef(object, key);
+  }
+  return res;
+}
+function proxyRefs(objectIsRef) {
+  return new Proxy(objectIsRef, {
+    get(target, key, reactive2) {
+      const res = Reflect.get(target, key, reactive2);
+      return res.__v_isRef ? res.value : res;
+    },
+    set(target, key, value, reactive2) {
+      const oldValue = target[key];
+      if (oldValue.__v_isRef) {
+        oldValue.value = value;
+        return true;
+      } else {
+        return Reflect.set(target, key, value, reactive2);
+      }
+    }
+  });
+}
+var ObjectRefImpl = class {
+  constructor(_object, _key) {
+    this._object = _object;
+    this._key = _key;
+    this.__v_isRef = true;
+  }
+  get value() {
+    return this._object[this._key];
+  }
+  set value(newValue) {
+    this._object[this._key] = newValue;
+  }
+};
 export {
+  activeEffect,
   effect,
-  reactive
+  proxyRefs,
+  reactive,
+  ref,
+  toReactive,
+  toRef,
+  toRefs,
+  trackEffect,
+  triggerEffect
 };
 //# sourceMappingURL=reactivity.js.map

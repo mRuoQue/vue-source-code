@@ -10,19 +10,41 @@
     // import {
     //   reactive,
     //   effect,
+    //   ref,
+    //   toRef,
+    //   toRefs,
+    //   proxyRefs,
     // } from "/node_modules/@vue/reactivity/dist/reactivity.esm-browser.js";
-    import { reactive, effect } from "./reactivity.js";
+    import {
+      reactive,
+      effect,
+      ref,
+      toRef,
+      toRefs,
+      proxyRefs,
+    } from "./reactivity.js";
 
-    const state = reactive({
-      name: "xiaoma",
-      age: 18,
-      flag: true,
-    });
+    const state = reactive({ name: "xiaoma", age: 18 });
+
+    const proxy = proxyRefs({ ...toRefs(state) });
+    console.log(proxy.name);
 
     effect(() => {
-      domApp.innerHTML = state.name;
-      state.name = Math.random();
+      domApp.innerHTML = proxy.name;
     });
+    setTimeout(() => {
+      proxy.name = "xxxx";
+    }, 2000);
+    // const state = reactive({
+    //   name: "xiaoma",
+    //   age: 18,
+    //   flag: true,
+    // });
+
+    // effect(() => {
+    //   domApp.innerHTML = state.name;
+    //   state.name = Math.random();
+    // });
 
     // state.name = "xiaohong";
 
