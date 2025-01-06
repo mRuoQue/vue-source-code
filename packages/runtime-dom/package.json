@@ -1,0 +1,19 @@
+{
+  "name": "@mw/runtime-dom",
+  "version": "1.0.0",
+  "module": "dist/runtime-dom.esm-bundler.js",
+  "unpkg": "dist/runtime-dom.global.js",
+  "buildOptions": {
+    "name": "RuntimeDom",
+    "formats": [
+      "esm-browser",
+      "cjs",
+      "global",
+      "esm-bundler"
+    ]
+  },
+  "dependencies": {
+    "@mw/reactivity": "workspace:*",
+    "@mw/shared": "workspace:*"
+  }
+}
