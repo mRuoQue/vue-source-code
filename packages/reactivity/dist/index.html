@@ -29,11 +29,18 @@
 
     const state = reactive({ name: "xiaoma", address: { name: "广东" } });
 
-    watch(state, (newValue, oldValue) => {
-      console.log(newValue);
-      console.log(oldValue);
-    });
+    watch(
+      state,
+      (newValue, oldValue) => {
+        console.log(newValue);
+        console.log(oldValue);
+      },
+      {
+        immediate: true,
+      }
+    );
     state.name = "xiaoma1";
+    state.name = "xiaoma2";
   </script>
   <body>
     <div id="app"></div>

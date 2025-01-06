@@ -178,41 +178,8 @@ function createReactiveObject(target) {
 function toReactive(value) {
   return isObject(value) ? reactive(value) : value;
 }
-
-// packages/reactivity/src/watch.ts
-function watch(source, cb, options = {}) {
-  return createWatch(source, cb, options);
-}
-function createWatch(source, cb, { deep }) {
-  let oldValue;
-  let _oldValue;
-  const getter = () => createReactiveGetter(source);
-  const createReactiveGetter = (source2) => traverse(source2, deep);
-  const _effect = new ReactiveEffect(getter, () => {
-    let newValue = _effect.run();
-    cb(newValue, _oldValue);
-    oldValue = newValue;
-  });
-  oldValue = _effect.run();
-  _oldValue = JSON.parse(JSON.stringify(oldValue));
-}
-function traverse(source, deep, currentDeep = 0, seen = /* @__PURE__ */ new Set()) {
-  if (!isObject(source)) {
-    return source;
-  }
-  if (deep) {
-    if (deep <= currentDeep) {
-      return source;
-    }
-    currentDeep++;
-  }
-  if (seen.has(source)) {
-    return source;
-  }
-  for (const key in source) {
-    traverse(source[key], deep, currentDeep, seen);
-  }
-  return source;
+function isReactive(value) {
+  return !!(value && value["__v_isReactive" /* IS_REACTIVE */]);
 }
 
 // packages/reactivity/src/ref.ts
@@ -294,6 +261,62 @@ var ObjectRefImpl = class {
     this._object[this._key] = newValue;
   }
 };
+function isRef(value) {
+  return !!(value && value.__v_isRef);
+}
+
+// packages/reactivity/src/watch.ts
+function watch(source, cb, options = {}) {
+  return createWatch(source, cb, options);
+}
+function createWatch(source, cb, { deep, immediate }) {
+  let oldValue;
+  let _oldValue;
+  let getter;
+  if (isFunction(source)) {
+    getter = source;
+  } else if (isReactive(source)) {
+    getter = () => createReactiveGetter(source);
+  } else if (isRef(source)) {
+    getter = source.value;
+  }
+  const createReactiveGetter = (source2) => traverse(source2, deep);
+  const scheduler = () => {
+    let newValue = _effect.run();
+    cb(newValue, _oldValue);
+    oldValue = newValue;
+    if (oldValue) {
+      _oldValue = JSON.parse(JSON.stringify(oldValue));
+    }
+  };
+  const _effect = new ReactiveEffect(getter, scheduler);
+  if (cb) {
+    if (immediate) {
+      scheduler();
+    } else {
+      oldValue = _effect.run();
+    }
+  } else {
+  }
+}
+function traverse(source, deep, currentDeep = 0, seen = /* @__PURE__ */ new Set()) {
+  if (!isObject(source)) {
+    return source;
+  }
+  if (deep) {
+    if (deep <= currentDeep) {
+      return source;
+    }
+    currentDeep++;
+  }
+  if (seen.has(source)) {
+    return source;
+  }
+  for (const key in source) {
+    traverse(source[key], deep, currentDeep, seen);
+  }
+  return source;
+}
 
 // packages/reactivity/src/computed.ts
 function computed(getterOptions) {
@@ -340,6 +363,8 @@ export {
   computed,
   createWatch,
   effect,
+  isReactive,
+  isRef,
   proxyRefs,
   reactive,
   ref,

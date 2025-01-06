@@ -88,3 +88,7 @@ class ObjectRefImpl {
     this._object[this._key] = newValue;
   }
 }
+
+export function isRef(value) {
+  return !!(value && value.__v_isRef);
+}
