@@ -60,7 +60,7 @@ export function createWatch(source, cb, { deep, immediate }) {
       scheduler();
     } else {
       oldValue = _effect.run();
-      //   _oldValue = JSON.parse(JSON.stringify(oldValue));
+      _oldValue = JSON.parse(JSON.stringify(oldValue));
     }
   } else {
     // watchEffect
