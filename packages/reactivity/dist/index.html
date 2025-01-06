@@ -14,33 +14,26 @@
     //   toRef,
     //   toRefs,
     //   proxyRefs,
+    //   watch,
     // } from "/node_modules/@vue/reactivity/dist/reactivity.esm-browser.js";
     import {
       reactive,
       effect,
       ref,
       toRef,
+      watch,
       toRefs,
       proxyRefs,
       computed,
     } from "./reactivity.js";
 
-    const state = reactive({ name: "xiaoma" });
-    const c = computed(() => {
-      console.log("run ...");
+    const state = reactive({ name: "xiaoma", address: { name: "广东" } });
 
-      return "xxx--" + state.name;
+    watch(state, (newValue, oldValue) => {
+      console.log(newValue);
+      console.log(oldValue);
     });
-
-    effect(() => {
-      console.log(c.value);
-      console.log(c.value);
-      console.log(c.value);
-    });
-
-    setTimeout(() => {
-      state.name = "daniel";
-    }, 2000);
+    state.name = "xiaoma1";
   </script>
   <body>
     <div id="app"></div>

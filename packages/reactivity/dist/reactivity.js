@@ -179,6 +179,42 @@ function toReactive(value) {
   return isObject(value) ? reactive(value) : value;
 }
 
+// packages/reactivity/src/watch.ts
+function watch(source, cb, options = {}) {
+  return createWatch(source, cb, options);
+}
+function createWatch(source, cb, { deep }) {
+  let oldValue;
+  let _oldValue;
+  const getter = () => createReactiveGetter(source);
+  const createReactiveGetter = (source2) => traverse(source2, deep);
+  const _effect = new ReactiveEffect(getter, () => {
+    let newValue = _effect.run();
+    cb(newValue, _oldValue);
+    oldValue = newValue;
+  });
+  oldValue = _effect.run();
+  _oldValue = JSON.parse(JSON.stringify(oldValue));
+}
+function traverse(source, deep, currentDeep = 0, seen = /* @__PURE__ */ new Set()) {
+  if (!isObject(source)) {
+    return source;
+  }
+  if (deep) {
+    if (deep <= currentDeep) {
+      return source;
+    }
+    currentDeep++;
+  }
+  if (seen.has(source)) {
+    return source;
+  }
+  for (const key in source) {
+    traverse(source[key], deep, currentDeep, seen);
+  }
+  return source;
+}
+
 // packages/reactivity/src/ref.ts
 function ref(value) {
   return createRef(value);
@@ -302,6 +338,7 @@ export {
   ReactiveEffect,
   activeEffect,
   computed,
+  createWatch,
   effect,
   proxyRefs,
   reactive,
@@ -312,6 +349,7 @@ export {
   trackEffect,
   trackRefValue,
   triggerEffect,
-  triggerRefValue
+  triggerRefValue,
+  watch
 };
 //# sourceMappingURL=reactivity.js.map
