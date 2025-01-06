@@ -22,6 +22,7 @@
       ref,
       toRef,
       watch,
+      watchEffect,
       toRefs,
       proxyRefs,
       computed,
@@ -31,7 +32,7 @@
 
     watch(
       state,
-      (newValue, oldValue) => {
+      (newValue, oldValue, onCleanup) => {
         console.log(newValue);
         console.log(oldValue);
       },
@@ -39,6 +40,20 @@
         immediate: true,
       }
     );
+
+    // watchEffect(() => {
+    //   console.log(state.name);
+    // });
+    // watch(
+    //   state,
+    //   (newValue, oldValue) => {
+    //     console.log(newValue);
+    //     console.log(oldValue);
+    //   },
+    //   {
+    //     immediate: true,
+    //   }
+    // );
     state.name = "xiaoma1";
     state.name = "xiaoma2";
   </script>

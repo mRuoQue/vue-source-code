@@ -67,6 +67,13 @@ export class ReactiveEffect {
       activeEffect = nextActiveEffrct;
     }
   }
+  stop() {
+    if (this.active) {
+      this.active = false;
+      overflowDepEffect(this);
+      cleanupPreEffect(this);
+    }
+  }
 }
 
 // 清除上一次的依赖关系，重新diff 依赖，最大限度复用

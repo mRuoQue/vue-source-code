@@ -59,6 +59,13 @@ var ReactiveEffect = class {
       activeEffect = nextActiveEffrct;
     }
   }
+  stop() {
+    if (this.active) {
+      this.active = false;
+      overflowDepEffect(this);
+      cleanupPreEffect(this);
+    }
+  }
 };
 function cleanupPreEffect(effect2) {
   effect2._depsLength = 0;
@@ -212,7 +219,7 @@ function trackRefValue(ref2) {
   if (activeEffect) {
     trackEffect(
       activeEffect,
-      ref2.dep = createDep(() => ref2.dep = void 0, "undefined")
+      ref2.dep = ref2.dep || createDep(() => ref2.dep = void 0, "undefined")
     );
   }
 }
@@ -269,10 +276,14 @@ function isRef(value) {
 function watch(source, cb, options = {}) {
   return createWatch(source, cb, options);
 }
+function watchEffect(getter, options = {}) {
+  return createWatch(getter, null, options);
+}
 function createWatch(source, cb, { deep, immediate }) {
   let oldValue;
   let _oldValue;
   let getter;
+  let cleanup;
   if (isFunction(source)) {
     getter = source;
   } else if (isReactive(source)) {
@@ -280,13 +291,26 @@ function createWatch(source, cb, { deep, immediate }) {
   } else if (isRef(source)) {
     getter = source.value;
   }
+  const onCleanup = (fn) => {
+    cleanup = () => {
+      fn();
+      cleanup = null;
+    };
+  };
   const createReactiveGetter = (source2) => traverse(source2, deep);
   const scheduler = () => {
-    let newValue = _effect.run();
-    cb(newValue, _oldValue);
-    oldValue = newValue;
-    if (oldValue) {
-      _oldValue = JSON.parse(JSON.stringify(oldValue));
+    if (!cb) {
+      _effect.run();
+    } else {
+      let newValue = _effect.run();
+      if (cleanup) {
+        cleanup();
+      }
+      cb(newValue, _oldValue, onCleanup);
+      oldValue = newValue;
+      if (oldValue) {
+        _oldValue = JSON.parse(JSON.stringify(oldValue));
+      }
     }
   };
   const _effect = new ReactiveEffect(getter, scheduler);
@@ -297,7 +321,12 @@ function createWatch(source, cb, { deep, immediate }) {
       oldValue = _effect.run();
     }
   } else {
+    _effect.run();
   }
+  const unWatch = () => {
+    _effect.stop();
+  };
+  return unWatch;
 }
 function traverse(source, deep, currentDeep = 0, seen = /* @__PURE__ */ new Set()) {
   if (!isObject(source)) {
@@ -375,6 +404,7 @@ export {
   trackRefValue,
   triggerEffect,
   triggerRefValue,
-  watch
+  watch,
+  watchEffect
 };
 //# sourceMappingURL=reactivity.js.map
