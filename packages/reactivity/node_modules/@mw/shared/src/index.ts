@@ -1,9 +1,13 @@
-export function isObject(obj) {
-  return obj !== null && typeof obj === "object";
+export function isObject(value) {
+  return value !== null && typeof value === "object";
 }
 
-export function isFunction(obj) {
-  return typeof obj === "function";
+export function isFunction(value) {
+  return typeof value === "function";
+}
+
+export function isString(value) {
+  return typeof value === "string";
 }
 
 export function extend(a, b) {

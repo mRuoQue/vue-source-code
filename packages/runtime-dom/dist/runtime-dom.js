@@ -173,11 +173,11 @@ var ShapeFlags = {
 };
 
 // packages/shared/src/index.ts
-function isObject(obj) {
-  return obj !== null && typeof obj === "object";
+function isObject(value) {
+  return value !== null && typeof value === "object";
 }
-function isFunction(obj) {
-  return typeof obj === "function";
+function isFunction(value) {
+  return typeof value === "function";
 }
 
 // packages/reactivity/src/effect.ts
