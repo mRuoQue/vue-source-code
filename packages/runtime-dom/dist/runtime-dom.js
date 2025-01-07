@@ -68,6 +68,8 @@ var nodeOptions = {
   },
   nextSbiling(node) {
     return node.nextSibling;
+  },
+  patchProp(el, key, oldValue, newValue) {
   }
 };
 
