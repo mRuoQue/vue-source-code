@@ -6,28 +6,15 @@
     <title>runtime-dom</title>
   </head>
   <script type="module">
-    console.log(111);
-
-    import {
-      createRenderer,
-      render,
-      h,
-    } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
-    // import {} from "./runtime-dom.js"
+    import { h } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
+    import { render } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
-    // const vnode = h("div", { class: "red" }, "hello world");
-    // const renderer = createRenderer({
-    //   createElement(tag) {
-    //     return document.createElement(tag);
-    //   },
-    //   setElementText(el, text) {
-    //     el.textContent = text;
-    //   },
-    //   insert(el, parent, anchor = null) {
-    //     parent.insertBefore(el, anchor);
-    //   },
-    // });
-    // render(vnode, domApp);
+    const vnode = h("div", [
+      h("p", { style: { color: "yellow" } }, "hello"),
+      h("p", { style: { color: "red" } }, "world"),
+    ]);
+    console.log(vnode);
+    render(vnode, domApp);
   </script>
   <body>
     <div id="app"></div>

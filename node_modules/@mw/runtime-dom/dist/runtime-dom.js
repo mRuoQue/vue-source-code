@@ -1,3 +1,175 @@
+// node_modules/.pnpm/@vue+shared@3.5.13/node_modules/@vue/shared/dist/shared.esm-bundler.js
+// @__NO_SIDE_EFFECTS__
+function makeMap(str) {
+  const map = /* @__PURE__ */ Object.create(null);
+  for (const key of str.split(",")) map[key] = 1;
+  return (val) => val in map;
+}
+var EMPTY_OBJ = true ? Object.freeze({}) : {};
+var EMPTY_ARR = true ? Object.freeze([]) : [];
+var extend = Object.assign;
+var isArray = Array.isArray;
+var cacheStringFunction = (fn) => {
+  const cache = /* @__PURE__ */ Object.create(null);
+  return (str) => {
+    const hit = cache[str];
+    return hit || (cache[str] = fn(str));
+  };
+};
+var camelizeRE = /-(\w)/g;
+var camelize = cacheStringFunction(
+  (str) => {
+    return str.replace(camelizeRE, (_, c) => c ? c.toUpperCase() : "");
+  }
+);
+var hyphenateRE = /\B([A-Z])/g;
+var hyphenate = cacheStringFunction(
+  (str) => str.replace(hyphenateRE, "-$1").toLowerCase()
+);
+var capitalize = cacheStringFunction((str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+});
+var toHandlerKey = cacheStringFunction(
+  (str) => {
+    const s = str ? `on${capitalize(str)}` : ``;
+    return s;
+  }
+);
+var specialBooleanAttrs = `itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly`;
+var isBooleanAttr = /* @__PURE__ */ makeMap(
+  specialBooleanAttrs + `,async,autofocus,autoplay,controls,default,defer,disabled,hidden,inert,loop,open,required,reversed,scoped,seamless,checked,muted,multiple,selected`
+);
+
+// packages/runtime-dom/src/nodeOptions.ts
+var nodeOptions = {
+  createElement(tag) {
+    return document.createElement(tag);
+  },
+  setElementText(el, text) {
+    el.textContent = text;
+  },
+  insert(el, parent, anchor = null) {
+    parent.insertBefore(el, anchor);
+  },
+  remove(el) {
+    const parent = el.parentNode;
+    if (parent) {
+      parent.removeChild(el);
+    }
+  },
+  createText(text) {
+    return document.createTextNode(text);
+  },
+  setText(node, text) {
+    node.nodeValue = text;
+  },
+  parentNode(node) {
+    return node.parentNode;
+  },
+  nextSbiling(node) {
+    return node.nextSibling;
+  }
+};
+
+// packages/runtime-dom/src/modules/patchAttr.ts
+function patchAttr(el, prop, value) {
+  if (value == null) {
+    el.removeAttribute(prop);
+  } else {
+    el.setAttribute(prop, value);
+  }
+}
+
+// packages/runtime-dom/src/modules/patchEvent.ts
+function patchEvent(el, eventType, handler) {
+  const invokers = el._evi || (el._evi = {});
+  const eventName = eventType.slice(2).toLowerCase();
+  const existingInvoker = invokers[eventType];
+  if (handler && existingInvoker) {
+    return existingInvoker.value = handler;
+  }
+  if (handler) {
+    const invoker = createInvoker(handler);
+    invokers[eventType] = invoker;
+    el.addEventListener(eventName, invoker);
+  } else if (existingInvoker) {
+    el.removeEventListener(eventName, existingInvoker);
+    invokers[eventType] = null;
+  }
+}
+function createInvoker(handler) {
+  const invoker = (e) => invoker.value(e);
+  invoker.value = handler;
+  return invoker;
+}
+
+// packages/runtime-dom/src/modules/patchStyle.ts
+function patchStyle(el, prevVal, nextVal) {
+  const style = el.style;
+  if (nextVal === null) {
+    el.removeAttribute("style");
+  } else {
+    for (let key in nextVal) {
+      style[key] = nextVal[key];
+    }
+    if (prevVal && typeof prevVal !== "string") {
+      for (let key in prevVal) {
+        if (nextVal[key] == null) {
+          style[key] = "";
+        }
+      }
+    }
+  }
+}
+
+// packages/runtime-dom/src/modules/patchClass.ts
+function patchClass(el, value) {
+  if (value === null) {
+    el.removeAttribute("class");
+  } else {
+    el.className = value;
+  }
+}
+
+// packages/runtime-dom/src/patchProps.ts
+var patchProps = (el, prop, preVal, nextVal) => {
+  if (prop === "class") {
+    return patchClass(el, nextVal);
+  } else if (prop === "style") {
+    return patchStyle(el, preVal, nextVal);
+  } else if (/^on[^a-z]/.test(prop)) {
+    return patchEvent(el, prop, nextVal);
+  } else {
+    return patchAttr(el, prop, nextVal);
+  }
+};
+
+// packages/shared/src/shapeFlags.ts
+var ShapeFlags = {
+  ELEMENT: 1,
+  "1": "ELEMENT",
+  FUNCTIONAL_COMPONENT: 2,
+  "2": "FUNCTIONAL_COMPONENT",
+  STATEFUL_COMPONENT: 4,
+  "4": "STATEFUL_COMPONENT",
+  TEXT_CHILDREN: 8,
+  "8": "TEXT_CHILDREN",
+  ARRAY_CHILDREN: 16,
+  "16": "ARRAY_CHILDREN",
+  SLOTS_CHILDREN: 32,
+  "32": "SLOTS_CHILDREN",
+  TELEPORT: 64,
+  "64": "TELEPORT",
+  SUSPENSE: 128,
+  "128": "SUSPENSE",
+  COMPONENT_SHOULD_KEEP_ALIVE: 256,
+  "256": "COMPONENT_SHOULD_KEEP_ALIVE",
+  COMPONENT_KEPT_ALIVE: 512,
+  "512": "COMPONENT_KEPT_ALIVE",
+  COMPONENT: 6,
+  "6": "COMPONENT"
+};
+
 // packages/shared/src/index.ts
 function isObject(obj) {
   return obj !== null && typeof obj === "object";
@@ -387,19 +559,75 @@ var ComputedRefImpl = class {
     this.setter = newValue;
   }
 };
+
+// packages/runtime-core/src/index.ts
+function createRenderer(rendererOptions2) {
+  const {
+    createElement: hostCreateElement,
+    setElementText: hostSetElementText,
+    insert: hostInsert,
+    remove: hostRemove,
+    createText: hostCreateText,
+    setText: hostSetText,
+    parentNode: hostParentNode,
+    nextSbiling: hostnNxtSbiling,
+    patchProps: hostPatchProps
+  } = rendererOptions2;
+  const mountChildren = (children, container) => {
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      patch(null, child, container);
+    }
+  };
+  const mountElement = (vnode, container) => {
+    const { type, props, children, shapeFlag } = vnode;
+    const el = hostCreateElement(type);
+    if (props) {
+      for (const key in props) {
+        const val = props[key];
+        hostPatchProps(el, key, null, val);
+      }
+    }
+    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      hostSetElementText(el, children);
+    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      mountChildren(children, el);
+    }
+    hostInsert(el, container);
+  };
+  const patch = (n1, n2, container) => {
+    if (n1 === n2) {
+      return;
+    }
+    if (n1 === null) {
+      mountElement(n2, container);
+    }
+  };
+  const render2 = (vnode, container) => {
+    patch(container._vnode || null, vnode, container);
+    container._vnode = vnode;
+  };
+  return { render: render2 };
+}
+
+// packages/runtime-dom/src/index.ts
+var rendererOptions = extend(nodeOptions, { patchProps });
+var render = function(vnode, container) {
+  return createRenderer(rendererOptions).render(vnode, container);
+};
 export {
   ReactiveEffect,
   activeEffect,
   computed,
+  createRenderer,
   createWatch,
   effect,
-  isFunction,
-  isObject,
   isReactive,
   isRef,
   proxyRefs,
   reactive,
   ref,
+  render,
   toReactive,
   toRef,
   toRefs,
@@ -410,4 +638,14 @@ export {
   watch,
   watchEffect
 };
+/*! Bundled license information:
+
+@vue/shared/dist/shared.esm-bundler.js:
+  (**
+  * @vue/shared v3.5.13
+  * (c) 2018-present Yuxi (Evan) You and Vue contributors
+  * @license MIT
+  **)
+  (*! #__NO_SIDE_EFFECTS__ *)
+*/
 //# sourceMappingURL=runtime-dom.js.map

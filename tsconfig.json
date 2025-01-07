@@ -12,7 +12,7 @@
         "lib": ["ESNext", "dom"],
         "baseUrl": ".",
         "paths": {
-            "@vue/*": ["packages/*/src"]
+            "@mw/*": ["packages/*/src"]
         }
     }
 }
