@@ -9,7 +9,7 @@ export const nodeOptions = {
     parent.insertBefore(el, anchor);
   },
   remove(el) {
-    const parent = el.parentNode;
+    const parent = el?.parentNode;
     if (parent) {
       parent.removeChild(el);
     }

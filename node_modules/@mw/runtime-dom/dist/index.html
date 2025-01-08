@@ -9,21 +9,18 @@
     // import { h } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
     import { render, h } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
-    const vnode = h("div", [
-      h(
-        "p",
-        {
-          style: { color: "yellow" },
-          onClick: () => {
-            alert(333);
-          },
-        },
-        "hello"
-      ),
-      h("p", { style: { color: "red" } }, "world"),
+    const vnode1 = h("div", { a: "1" }, "hello");
+    const vnode2 = h("div", { style: { color: "red" } }, [
+      h("h1", "a"),
+      h("h1", "b"),
     ]);
-    // console.log(vnode);
-    render(vnode, domApp);
+    // const vnode2 = h("div", { b: "1" }, "wdorld");
+
+    render(vnode1, domApp);
+
+    setTimeout(() => {
+      render(vnode2, domApp);
+    }, 2000);
   </script>
   <body>
     <div id="app"></div>

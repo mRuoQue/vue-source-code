@@ -11,9 +11,7 @@ export function h(type, props?, children?) {
   const argLen = arguments.length;
   if (argLen === 2) {
     // 如果第二个参数是数组，那么就是children
-    if (isArray(props)) {
-      return createVnode(type, null, props);
-    } else {
+    if (isObject(props) && !isArray(props)) {
       // 否则是个对象，可能是vnode 也可能是props
       if (isVnode(props)) {
         return createVnode(type, null, [props]);
@@ -21,6 +19,7 @@ export function h(type, props?, children?) {
         return createVnode(type, props);
       }
     }
+    return createVnode(type, null, props);
   } else {
     if (argLen === 3 && isVnode(children)) {
       children = [children];
