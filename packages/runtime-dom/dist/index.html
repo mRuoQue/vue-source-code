@@ -6,14 +6,23 @@
     <title>runtime-dom</title>
   </head>
   <script type="module">
-    import { h } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
-    import { render } from "./runtime-dom.js";
+    // import { h } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
+    import { render, h } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
     const vnode = h("div", [
-      h("p", { style: { color: "yellow" } }, "hello"),
+      h(
+        "p",
+        {
+          style: { color: "yellow" },
+          onClick: () => {
+            alert(333);
+          },
+        },
+        "hello"
+      ),
       h("p", { style: { color: "red" } }, "world"),
     ]);
-    console.log(vnode);
+    // console.log(vnode);
     render(vnode, domApp);
   </script>
   <body>

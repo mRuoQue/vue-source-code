@@ -29,11 +29,11 @@
       - patchClass : 修改dom节点class
       - patchStyle : 修改dom节点style
 
-    - createRenderer : 渲染器，可扩展自定义渲染器，跨平台
+    - createRenderer : 创建render渲染器，可扩展自定义渲染器，跨平台
       - shapeFlags : 节点类型(位运算计算)
       - mountElement : 挂载dom节点
       - mountChildren : 挂载dom节点子节点
 
     - h : 创建虚拟节点
-    - render : 内置渲染方式
+    - render : 内置渲染方式，通过patch-diff 调用dom api实现更新
     

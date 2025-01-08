@@ -6,6 +6,7 @@
  * @returns void
  */
 export default function patchEvent(el, eventType, handler) {
+  // debugger;
   const invokers = el._evi || (el._evi = {});
   const eventName = eventType.slice(2).toLowerCase();
 

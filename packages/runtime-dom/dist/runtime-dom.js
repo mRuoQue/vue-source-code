@@ -179,6 +179,15 @@ function isObject(value) {
 function isFunction(value) {
   return typeof value === "function";
 }
+function isString(value) {
+  return typeof value === "string";
+}
+function isArray2(value) {
+  return Array.isArray(value);
+}
+function isVnode(value) {
+  return value?.__v_isVnode;
+}
 
 // packages/reactivity/src/effect.ts
 var activeEffect;
@@ -562,7 +571,7 @@ var ComputedRefImpl = class {
   }
 };
 
-// packages/runtime-core/src/index.ts
+// packages/runtime-core/src/createRenderer.ts
 function createRenderer(rendererOptions2) {
   const {
     createElement: hostCreateElement,
@@ -582,6 +591,7 @@ function createRenderer(rendererOptions2) {
     }
   };
   const mountElement = (vnode, container) => {
+    console.log(vnode);
     const { type, props, children, shapeFlag } = vnode;
     const el = hostCreateElement(type);
     if (props) {
@@ -612,6 +622,48 @@ function createRenderer(rendererOptions2) {
   return { render: render2 };
 }
 
+// packages/runtime-core/src/createVnode.ts
+function createVnode(type, props, children) {
+  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : 0;
+  const vnode = {
+    __v_isVnode: true,
+    el: null,
+    key: props && props.key,
+    type,
+    props,
+    children,
+    shapeFlag
+  };
+  if (children) {
+    vnode.shapeFlag |= isString(children) ? ShapeFlags.TEXT_CHILDREN : ShapeFlags.ARRAY_CHILDREN;
+  }
+  return vnode;
+}
+
+// packages/runtime-core/src/h.ts
+function h(type, props, children) {
+  const argLen = arguments.length;
+  if (argLen === 2) {
+    if (isArray2(props)) {
+      return createVnode(type, null, props);
+    } else {
+      if (isVnode(props)) {
+        return createVnode(type, null, [props]);
+      } else {
+        return createVnode(type, props);
+      }
+    }
+  } else {
+    if (argLen === 3 && isVnode(children)) {
+      children = [children];
+    }
+    if (argLen > 3) {
+      children = Array.from(arguments).slice(2);
+    }
+  }
+  return createVnode(type, props, children);
+}
+
 // packages/runtime-dom/src/index.ts
 var rendererOptions = extend(nodeOptions, { patchProps });
 var render = function(vnode, container) {
@@ -624,6 +676,7 @@ export {
   createRenderer,
   createWatch,
   effect,
+  h,
   isReactive,
   isRef,
   proxyRefs,
