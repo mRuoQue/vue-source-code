@@ -44,6 +44,7 @@
             - 3. 新节点多出的，patch(null,newVnode,el,anchor)
             - 4. 旧节点多出的，unMount(oldVnode.el)
             - 5. 中间部分存map表，如果旧节点找到索引，删除旧节点，新节点找到索引，复用（patch(oldPos, c2[nextPosIndex], el)）及创建新节点（patch(null, newVnode, el, anchor)）。
+            - 6. 最长递增子序列优化diff，通过新节点构建新旧索引映射表，根据映射表，找到最长递增子序列，倒序构建子序列，记录上一个子索引，找出倒序更新索引，相同的索引则跳过，否则插入
 
 
     - h : 创建虚拟节点
