@@ -1,4 +1,5 @@
 import { isSameVnode, ShapeFlags } from "@mw/shared";
+import longIncSequeue from "./longIncSequeue";
 
 // 创建渲染器render，render调用patch差异化diff，调用dom api跟新元素
 export function createRenderer(rendererOptions) {
@@ -126,6 +127,9 @@ export function createRenderer(rendererOptions) {
       const keyToNewIndexMap = new Map();
       let s1 = i;
       let s2 = i;
+      // 倒序插入
+      let toBePatched = e2 - s2 + 1;
+      let newIndexToOldIndexMap = new Array(toBePatched).fill(0);
 
       for (let i = s2; i <= e2; i++) {
         const currentVnode = c2[i];
@@ -140,12 +144,18 @@ export function createRenderer(rendererOptions) {
         if (nextPosIndex == undefined) {
           unMount(oldPos);
         } else {
+          // 新旧更新节点映射关联 newIndex -> oldIndex
+          newIndexToOldIndexMap[nextPosIndex - s2] = i;
           // 复用旧节点
           patch(oldPos, c2[nextPosIndex], el);
         }
       }
-      // 倒序插入
-      const toBePatched = e2 - s2 + 1;
+      console.log(newIndexToOldIndexMap);
+
+      let longIncSeq = longIncSequeue(newIndexToOldIndexMap);
+      console.log(longIncSeq);
+
+      let lastLongIncSeqIndex = longIncSeq.length - 1;
       for (let i = toBePatched - 1; i >= 0; i--) {
         const newPosIndex = s2 + i;
         const anchor = c2[newPosIndex + 1]?.el;
@@ -153,6 +163,12 @@ export function createRenderer(rendererOptions) {
         if (!newVnode?.el) {
           // 新增
           patch(null, newVnode, el, anchor);
+        } else {
+          if (i === longIncSeq[lastLongIncSeqIndex]) {
+            lastLongIncSeqIndex--;
+          } else {
+            hostInsert(newVnode.el, el, anchor);
+          }
         }
       }
     }
