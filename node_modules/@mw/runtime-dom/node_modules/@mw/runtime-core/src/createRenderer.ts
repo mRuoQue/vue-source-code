@@ -140,7 +140,7 @@ export function createRenderer(rendererOptions) {
         if (nextPosIndex == undefined) {
           unMount(oldPos);
         } else {
-          // console.log(nextPosIndex);
+          // 复用旧节点
           patch(oldPos, c2[nextPosIndex], el);
         }
       }
@@ -151,6 +151,7 @@ export function createRenderer(rendererOptions) {
         const anchor = c2[newPosIndex + 1]?.el;
         const newVnode = c2[newPosIndex];
         if (!newVnode?.el) {
+          // 新增
           patch(null, newVnode, el, anchor);
         }
       }

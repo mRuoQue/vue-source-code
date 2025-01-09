@@ -38,6 +38,12 @@
         - patchElement(n1, n2, container)：类型相同，diff
           - patchProps : 节点属性比较策略
           - patchChildren : 节点子节点比较策略（新旧节点比较shapeFlag，执行相应的策略）
+          - patchKeyedChildren：节点子节点比较策略（keyed diff）
+            - 1. 从头部比较相同节点复用
+            - 2. 从尾部比较相同节点复用
+            - 3. 新节点多出的，patch(null,newVnode,el,anchor)
+            - 4. 旧节点多出的，unMount(oldVnode.el)
+            - 5. 中间部分存map表，如果旧节点找到索引，删除旧节点，新节点找到索引，复用（patch(oldPos, c2[nextPosIndex], el)）及创建新节点（patch(null, newVnode, el, anchor)）。
 
 
     - h : 创建虚拟节点
