@@ -20,13 +20,16 @@ export function createRenderer(rendererOptions) {
       patch(null, child, container);
     }
   };
+
+  const unMount = (vnode) => hostRemove(vnode.el);
+
   const unMountChildren = (children) => {
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
       unMount(child);
     }
   };
-  const mountElement = (vnode, container) => {
+  const mountElement = (vnode, container, anchor) => {
     const { type, props, children, shapeFlag } = vnode;
     // 创建dom元素
     const el = (vnode.el = hostCreateElement(type));
@@ -34,7 +37,6 @@ export function createRenderer(rendererOptions) {
     if (props) {
       for (const key in props) {
         const val = props[key];
-        console.log(key, val);
         hostPatchProps(el, key, null, val);
       }
     }
@@ -44,7 +46,7 @@ export function createRenderer(rendererOptions) {
       mountChildren(children, el);
     }
     // el插入到 container
-    hostInsert(el, container);
+    hostInsert(el, container, anchor);
   };
 
   // 更新属性 {style class event attribute}
@@ -66,10 +68,97 @@ export function createRenderer(rendererOptions) {
     }
   };
 
-  const patchKeyedChildren = (c1, c2, el) => {};
+  // diff
+  const patchKeyedChildren = (c1, c2, el) => {
+    let i = 0; // 记录每次同步的位置
+    const l1 = c1.length;
+    const l2 = c2.length;
+    let e1 = l1 - 1; // 旧节点尾部
+    let e2 = l2 - 1; // 新节点尾部
+    // 1. 从头同步
+
+    while (i <= e1 && i <= e2) {
+      const n1 = c1[i];
+      const n2 = c2[i];
+
+      if (isSameVnode(n1, n2)) {
+        patch(n1, n2, el); // 递归更新复用节点
+      } else {
+        break;
+      }
+      i++;
+    }
+    // 2. 从尾部同步
+    while (i <= e1 && i <= e2) {
+      const n1 = c1[e1];
+      const n2 = c2[e2];
+      if (isSameVnode(n1, n2)) {
+        patch(n1, n2, el);
+      } else {
+        break;
+      }
+      e1--;
+      e2--;
+    }
+    // 3. 增删改中间节点
+
+    if (i > e1) {
+      // 新节点添加
+      if (i <= e2) {
+        const nextPos = e2 + 1;
+        // 下一个节点（参照物），有向后插入，没有头部插入
+        const anchor = nextPos < l2 ? c2[nextPos].el : null;
+        while (i <= e2) {
+          patch(null, c2[i], el, anchor);
+          i++;
+        }
+      }
+    } else if (i > e2) {
+      // 旧节点多 删除
+      if (i <= e1) {
+        while (i <= e1) {
+          unMount(c1[i].el);
+          i++;
+        }
+      }
+    } else {
+      // 4. 中间位置
+      const keyToNewIndexMap = new Map();
+      let s1 = i;
+      let s2 = i;
+
+      for (let i = s2; i <= e2; i++) {
+        const currentVnode = c2[i];
+        keyToNewIndexMap.set(currentVnode.key, i);
+      }
+
+      for (let i = s1; i <= e1; i++) {
+        // 旧节点是否存在,不存在删除
+        const oldPos = c1[i];
+        const nextPosIndex = keyToNewIndexMap.get(oldPos.key);
+
+        if (nextPosIndex == undefined) {
+          unMount(oldPos);
+        } else {
+          // console.log(nextPosIndex);
+          patch(oldPos, c2[nextPosIndex], el);
+        }
+      }
+      // 倒序插入
+      const toBePatched = e2 - s2 + 1;
+      for (let i = toBePatched - 1; i >= 0; i--) {
+        const newPosIndex = s2 + i;
+        const anchor = c2[newPosIndex + 1]?.el;
+        const newVnode = c2[newPosIndex];
+        if (!newVnode?.el) {
+          patch(null, newVnode, el, anchor);
+        }
+      }
+    }
+  };
 
   /**
-   * 类型相同，更新 children,分多钟情况处理
+   * 类型相同，更新 children
    * @param n1
    * @param n2
    * @param el
@@ -121,17 +210,17 @@ export function createRenderer(rendererOptions) {
     patchChildren(n1, n2, el);
   };
 
-  const processElement = (n1, n2, container) => {
+  const processElement = (n1, n2, container, anchor) => {
     // n1=null初始化 创建元素，否则差异化更新
     if (n1 === null) {
-      mountElement(n2, container);
+      mountElement(n2, container, anchor);
     } else {
       // 类型相同复用 差异化更新
       patchElement(n1, n2, container);
     }
   };
 
-  const patch = (n1, n2, container) => {
+  const patch = (n1, n2, container, anchor?) => {
     if (n1 === n2) {
       return;
     }
@@ -141,10 +230,9 @@ export function createRenderer(rendererOptions) {
       n1 = null; // 删除n1，走n2初始化
     }
     // 更新元素
-    processElement(n1, n2, container);
+    processElement(n1, n2, container, anchor);
   };
 
-  const unMount = (vnode) => hostRemove(vnode.el);
   // 调用runtime-dom中创建dom API ,创建元素渲染到 container
   const render = (vnode, container) => {
     // vnode=null,移除当前vnode，删除当前el

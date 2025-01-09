@@ -9,12 +9,26 @@
     // import { h } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
     import { render, h } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
-    const vnode1 = h("div", { a: "1" }, "hello");
-    const vnode2 = h("div", { style: { color: "red" } }, [
-      h("h1", "a"),
-      h("h1", "b"),
+    const vnode1 = h("div", [
+      h("h1", { key: "a" }, "a"),
+      h("h1", { key: "b" }, "b"),
+      h("h1", { key: "c" }, "c"),
+      h("h1", { key: "d" }, "d"),
+      h("h1", { key: "m", style: { color: "red" } }, "m"),
+      h("h1", { key: "e" }, "e"),
+      h("h1", { key: "f" }, "f"),
+      h("h1", { key: "g" }, "g"),
     ]);
-    // const vnode2 = h("div", { b: "1" }, "wdorld");
+    const vnode2 = h("div", [
+      h("h1", { key: "a" }, "a"),
+      h("h1", { key: "b" }, "b"),
+      h("h1", { key: "e" }, "e"),
+      h("h1", { key: "c" }, "c"),
+      h("h1", { key: "d" }, "d"),
+      h("h1", { key: "h" }, "h"),
+      h("h1", { key: "f" }, "f"),
+      h("h1", { key: "g" }, "g"),
+    ]);
 
     render(vnode1, domApp);
 
