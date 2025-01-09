@@ -1,6 +1,10 @@
 import { isSameVnode, ShapeFlags } from "@mw/shared";
 import longIncSequeue from "./longIncSequeue";
 
+// 定义元素类型
+export const Text = Symbol("Text");
+export const Fragment = Symbol("Fragment");
+
 // 创建渲染器render，render调用patch差异化diff，调用dom api跟新元素
 export function createRenderer(rendererOptions) {
   const {
@@ -22,7 +26,13 @@ export function createRenderer(rendererOptions) {
     }
   };
 
-  const unMount = (vnode) => hostRemove(vnode.el);
+  const unMount = (vnode) => {
+    if (vnode.type === Fragment) {
+      unMountChildren(vnode.children);
+    } else {
+      hostRemove(vnode.el);
+    }
+  };
 
   const unMountChildren = (children) => {
     for (let i = 0; i < children.length; i++) {
@@ -60,7 +70,6 @@ export function createRenderer(rendererOptions) {
         hostPatchProps(el, key, prevProp, nextProp);
       }
     }
-
     // 删除旧的
     for (const key in oldProps) {
       if (!(key in newProps)) {
@@ -150,10 +159,8 @@ export function createRenderer(rendererOptions) {
           patch(oldPos, c2[nextPosIndex], el);
         }
       }
-      console.log(newIndexToOldIndexMap);
 
       let longIncSeq = longIncSequeue(newIndexToOldIndexMap);
-      console.log(longIncSeq);
 
       let lastLongIncSeqIndex = longIncSeq.length - 1;
       for (let i = toBePatched - 1; i >= 0; i--) {
@@ -237,6 +244,28 @@ export function createRenderer(rendererOptions) {
     }
   };
 
+  const processText = (n1, n2, container) => {
+    if (n1 === null) {
+      // 创建文本
+      hostInsert((n2.el = hostCreateText(n2.children)), container);
+    } else {
+      // 更新文本
+      const el = (n2.el = n1.el);
+      if (n1.children !== n2.children) {
+        hostSetText(el, n2.children);
+      }
+    }
+  };
+  const processFragment = (n1, n2, container, anchor) => {
+    if (n1 === null) {
+      // 创建
+      mountChildren(n2.children, container);
+    } else {
+      // 更新
+      patchChildren(n1, n2, container);
+    }
+  };
+
   const patch = (n1, n2, container, anchor?) => {
     if (n1 === n2) {
       return;
@@ -246,8 +275,18 @@ export function createRenderer(rendererOptions) {
       unMount(n1);
       n1 = null; // 删除n1，走n2初始化
     }
-    // 更新元素
-    processElement(n1, n2, container, anchor);
+    switch (n2.type) {
+      case Text:
+        processText(n1, n2, container);
+        break;
+      case Fragment:
+        processFragment(n1, n2, container, anchor);
+        break;
+
+      default:
+        // 更新元素
+        processElement(n1, n2, container, anchor);
+    }
   };
 
   // 调用runtime-dom中创建dom API ,创建元素渲染到 container
@@ -255,10 +294,11 @@ export function createRenderer(rendererOptions) {
     // vnode=null,移除当前vnode，删除当前el
     if (vnode === null) {
       unMount(vnode);
+    } else {
+      patch(container._vnode || null, vnode, container);
+      // 保存上一次的vnode
+      container._vnode = vnode;
     }
-    patch(container._vnode || null, vnode, container);
-    // 保存上一次的vnode
-    container._vnode = vnode;
   };
 
   return { render };

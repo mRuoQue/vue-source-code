@@ -617,6 +617,8 @@ function longIncSequeue(arr) {
 }
 
 // packages/runtime-core/src/createRenderer.ts
+var Text = Symbol("Text");
+var Fragment = Symbol("Fragment");
 function createRenderer(rendererOptions2) {
   const {
     createElement: hostCreateElement,
@@ -635,7 +637,13 @@ function createRenderer(rendererOptions2) {
       patch(null, child, container);
     }
   };
-  const unMount = (vnode) => hostRemove(vnode.el);
+  const unMount = (vnode) => {
+    if (vnode.type === Fragment) {
+      unMountChildren(vnode.children);
+    } else {
+      hostRemove(vnode.el);
+    }
+  };
   const unMountChildren = (children) => {
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
@@ -735,9 +743,7 @@ function createRenderer(rendererOptions2) {
           patch(oldPos, c2[nextPosIndex], el);
         }
       }
-      console.log(newIndexToOldIndexMap);
       let longIncSeq = longIncSequeue(newIndexToOldIndexMap);
-      console.log(longIncSeq);
       let lastLongIncSeqIndex = longIncSeq.length - 1;
       for (let i2 = toBePatched - 1; i2 >= 0; i2--) {
         const newPosIndex = s2 + i2;
@@ -798,6 +804,23 @@ function createRenderer(rendererOptions2) {
       patchElement(n1, n2, container);
     }
   };
+  const processText = (n1, n2, container) => {
+    if (n1 === null) {
+      hostInsert(n2.el = hostCreateText(n2.children), container);
+    } else {
+      const el = n2.el = n1.el;
+      if (n1.children !== n2.children) {
+        hostSetText(el, n2.children);
+      }
+    }
+  };
+  const processFragment = (n1, n2, container, anchor) => {
+    if (n1 === null) {
+      mountChildren(n2.children, container);
+    } else {
+      patchChildren(n1, n2, container);
+    }
+  };
   const patch = (n1, n2, container, anchor) => {
     if (n1 === n2) {
       return;
@@ -806,14 +829,24 @@ function createRenderer(rendererOptions2) {
       unMount(n1);
       n1 = null;
     }
-    processElement(n1, n2, container, anchor);
+    switch (n2.type) {
+      case Text:
+        processText(n1, n2, container);
+        break;
+      case Fragment:
+        processFragment(n1, n2, container, anchor);
+        break;
+      default:
+        processElement(n1, n2, container, anchor);
+    }
   };
   const render2 = (vnode, container) => {
     if (vnode === null) {
       unMount(vnode);
+    } else {
+      patch(container._vnode || null, vnode, container);
+      container._vnode = vnode;
     }
-    patch(container._vnode || null, vnode, container);
-    container._vnode = vnode;
   };
   return { render: render2 };
 }
@@ -865,7 +898,9 @@ var render = function(vnode, container) {
   return createRenderer(rendererOptions).render(vnode, container);
 };
 export {
+  Fragment,
   ReactiveEffect,
+  Text,
   activeEffect,
   computed,
   createRenderer,
