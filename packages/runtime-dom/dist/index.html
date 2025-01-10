@@ -20,13 +20,8 @@
         return { name: "mw", age: 18 };
       },
       render() {
-        // setTimeout(() => {
-        //   this.age++;
-        //   this.age++;
-        // }, 1000);
-
         return h(Fragment, [
-          h(Text, `name is ${this.name} ,`),
+          h("a", `name is ${this.name} ,`),
           h("a", { style: { color: "red" } }, `age is ${this.age}`),
         ]);
       },

@@ -12,11 +12,11 @@ export function queueJob(job) {
 
     promiseResolve.then(() => {
       isFlashing = false;
-      const copy = queue.slice();
+      const newQueue = queue.slice();
       queue.length = 0;
-      for (let i = 0; i < copy.length; i++) {
-        copy[i]();
-        copy.length = 0;
+      for (let i = 0; i < newQueue.length; i++) {
+        newQueue[i]();
+        newQueue.length = 0;
       }
     });
   }
