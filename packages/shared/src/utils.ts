@@ -1,3 +1,4 @@
+const hasOwnProperty = Object.prototype.hasOwnProperty;
 export function isObject(value) {
   return value !== null && typeof value === "object";
 }
@@ -15,4 +16,7 @@ export function isArray(value) {
 }
 export function extend(a, b) {
   return Object.assign(a, b);
+}
+export function hasOwn(value, key) {
+  return hasOwnProperty.call(value, key);
 }

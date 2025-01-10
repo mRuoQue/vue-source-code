@@ -1,4 +1,4 @@
-import { isObject, isString, ShapeFlags } from "@mw/shared";
+import { isArray, isObject, isString, ShapeFlags } from "@mw/shared";
 
 /**
  * 创建虚拟dom
@@ -16,7 +16,7 @@ export function createVnode(type, props?, children?) {
   const vnode = {
     __v_isVnode: true,
     el: null,
-    key: props && props.key,
+    key: props?.key,
     type,
     props,
     children,

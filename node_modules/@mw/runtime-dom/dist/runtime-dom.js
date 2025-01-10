@@ -147,6 +147,7 @@ var patchProps = (el, prop, preVal, nextVal) => {
 };
 
 // packages/shared/src/utils.ts
+var hasOwnProperty = Object.prototype.hasOwnProperty;
 function isObject(value) {
   return value !== null && typeof value === "object";
 }
@@ -158,6 +159,9 @@ function isString(value) {
 }
 function isArray2(value) {
   return Array.isArray(value);
+}
+function hasOwn(value, key) {
+  return hasOwnProperty.call(value, key);
 }
 
 // packages/shared/src/vnode.ts
@@ -688,10 +692,27 @@ function createRenderer(rendererOptions2) {
     }
     hostInsert(el, container, anchor);
   };
+  const initProps = (instance, totlePropsOptions) => {
+    let props = {};
+    let attrs = {};
+    let propsOptions = instance.propsOptions;
+    if (totlePropsOptions) {
+      for (let key in totlePropsOptions) {
+        const value = totlePropsOptions[key];
+        if (key in propsOptions) {
+          props[key] = value;
+        } else {
+          attrs[key] = value;
+        }
+      }
+    }
+    instance.attrs = attrs;
+    instance.props = reactive(props);
+  };
   const mountComponent = (n2, container, anchor) => {
-    const { type, props, children, shapeFlag } = n2;
+    const { type, props: vnodeProps, children, shapeFlag } = n2;
     const { data = () => {
-    }, render: render3 } = type;
+    }, props: propsOptions = {}, render: render3 } = type;
     const state = reactive(data());
     const instance = {
       state,
@@ -699,16 +720,52 @@ function createRenderer(rendererOptions2) {
       subTree: null,
       // 组件的子树虚拟节点
       update: null,
-      isMounted: false
+      props: {},
+      // 组件props = propsOptions在 vnodeProps找的值
+      propsOptions,
+      // 传入的props
+      attrs: {},
+      // 其他属性 = vnodeProps找的值 - propsOptions
+      commponent: null,
+      isMounted: false,
+      proxy: null
+      // 代理对象 props.name = proxy.name
     };
+    initProps(instance, vnodeProps);
+    const publicPrototype = {
+      $attrs: (instance2) => instance2.attrs
+    };
+    instance.proxy = new Proxy(instance, {
+      get(target, key) {
+        const { state: state2, props } = target;
+        if (state2 && hasOwn(state2, key)) {
+          return state2[key];
+        } else if (props && hasOwn(props, key)) {
+          return props[key];
+        }
+        const publicGetter = publicPrototype[key];
+        if (publicGetter) {
+          return publicGetter(target);
+        }
+      },
+      set(target, key, value) {
+        const { state: state2, props } = target;
+        if (state2 && hasOwn(state2, key)) {
+          state2[key] = value;
+        } else if (props && hasOwn(props, key)) {
+          console.warn(`props is readonly,do not assign to it directly.`);
+        }
+        return true;
+      }
+    });
     const componentUpdateFn = () => {
       if (!instance.isMounted) {
-        const subTree = render3.call(state, state);
+        const subTree = render3.call(instance.proxy, instance.proxy);
         patch(null, subTree, container, anchor);
         instance.subTree = subTree;
         instance.isMounted = true;
       } else {
-        const newSubTree = render3.call(state, state);
+        const newSubTree = render3.call(instance.proxy, instance.proxy);
         patch(instance.subTree, newSubTree, container, anchor);
         instance.subTree = newSubTree;
       }
@@ -927,7 +984,7 @@ function createVnode(type, props, children) {
   const vnode = {
     __v_isVnode: true,
     el: null,
-    key: props && props.key,
+    key: props?.key,
     type,
     props,
     children,

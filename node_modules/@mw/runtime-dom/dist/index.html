@@ -16,18 +16,19 @@
     const domApp = document.querySelector("#app");
 
     const mwComponent = {
-      data() {
-        return { name: "mw", age: 18 };
+      props: {
+        name: String,
+        age: Number,
       },
-      render() {
+      render(proxy) {
         return h(Fragment, [
-          h("a", `name is ${this.name} ,`),
-          h("a", { style: { color: "red" } }, `age is ${this.age}`),
+          h("a", `name is ${proxy.$attrs.b}`),
+          h("a", { style: { color: "red" } }, `age is ${proxy.$attrs.a}`),
         ]);
       },
     };
 
-    render(h(mwComponent), domApp);
+    render(h(mwComponent, { a: 1, b: 2, name: "mw", age: 18 }), domApp);
   </script>
   <body>
     <div id="app"></div>
