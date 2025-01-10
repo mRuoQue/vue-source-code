@@ -616,6 +616,28 @@ function longIncSequeue(arr) {
   return result;
 }
 
+// packages/runtime-core/src/queueJob.ts
+var queue = [];
+var promiseResolve = Promise.resolve();
+var isFlashing = false;
+function queueJob(job) {
+  if (!queue.includes(job)) {
+    queue.push(job);
+  }
+  if (!isFlashing) {
+    isFlashing = true;
+    promiseResolve.then(() => {
+      isFlashing = false;
+      const copy = queue.slice();
+      queue.length = 0;
+      for (let i = 0; i < copy.length; i++) {
+        copy[i]();
+        copy.length = 0;
+      }
+    });
+  }
+}
+
 // packages/runtime-core/src/createRenderer.ts
 var Text = Symbol("Text");
 var Fragment = Symbol("Fragment");
@@ -665,6 +687,41 @@ function createRenderer(rendererOptions2) {
       mountChildren(children, el);
     }
     hostInsert(el, container, anchor);
+  };
+  const mountComponent = (n2, container, anchor) => {
+    const { type, props, children, shapeFlag } = n2;
+    const { data = () => {
+    }, render: render3 } = type;
+    const state = reactive(data());
+    const instance = {
+      state,
+      vnode: n2,
+      subTree: null,
+      // 组件的子树虚拟节点
+      update: null,
+      isMounted: false
+    };
+    const componentUpdateFn = () => {
+      if (!instance.isMounted) {
+        const subTree = render3.call(state, state);
+        patch(null, subTree, container, anchor);
+        instance.subTree = subTree;
+        instance.isMounted = true;
+      } else {
+        const newSubTree = render3.call(state, state);
+        patch(instance.subTree, newSubTree, container, anchor);
+        instance.subTree = newSubTree;
+      }
+    };
+    const _effect = new ReactiveEffect(
+      componentUpdateFn,
+      () => queueJob(update)
+    );
+    const update = () => {
+      _effect.run();
+    };
+    instance.update = update;
+    update();
   };
   const patchProps2 = (oldProps, newProps, el) => {
     for (const key in newProps) {
@@ -821,6 +878,14 @@ function createRenderer(rendererOptions2) {
       patchChildren(n1, n2, container);
     }
   };
+  const processComponent = (n1, n2, container, anchor) => {
+    if (n1 === null) {
+      mountComponent(n2, container, anchor);
+    } else {
+      updateComponent(n1, n2, container);
+    }
+    let instance = {};
+  };
   const patch = (n1, n2, container, anchor) => {
     if (n1 === n2) {
       return;
@@ -829,7 +894,8 @@ function createRenderer(rendererOptions2) {
       unMount(n1);
       n1 = null;
     }
-    switch (n2.type) {
+    const { type, shapeFlag } = n2;
+    switch (type) {
       case Text:
         processText(n1, n2, container);
         break;
@@ -837,7 +903,11 @@ function createRenderer(rendererOptions2) {
         processFragment(n1, n2, container, anchor);
         break;
       default:
-        processElement(n1, n2, container, anchor);
+        if (shapeFlag & ShapeFlags.COMPONENT) {
+          processComponent(n1, n2, container, anchor);
+        } else if (shapeFlag & ShapeFlags.ELEMENT) {
+          processElement(n1, n2, container, anchor);
+        }
     }
   };
   const render2 = (vnode, container) => {

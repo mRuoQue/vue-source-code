@@ -1,5 +1,8 @@
 import { isSameVnode, ShapeFlags } from "@mw/shared";
 import longIncSequeue from "./longIncSequeue";
+import { reactive } from "@mw/reactivity";
+import { ReactiveEffect } from "@mw/reactivity";
+import { queueJob } from "./queueJob";
 
 // 定义元素类型
 export const Text = Symbol("Text");
@@ -58,6 +61,39 @@ export function createRenderer(rendererOptions) {
     }
     // el插入到 container
     hostInsert(el, container, anchor);
+  };
+
+  const mountComponent = (n2, container, anchor) => {
+    const { type, props, children, shapeFlag } = n2;
+    const { data = () => {}, render } = type;
+    const state = reactive(data());
+    const instance = {
+      state,
+      vnode: n2,
+      subTree: null, // 组件的子树虚拟节点
+      update: null,
+      isMounted: false,
+    };
+    const componentUpdateFn = () => {
+      if (!instance.isMounted) {
+        const subTree = render.call(state, state);
+        patch(null, subTree, container, anchor);
+        instance.subTree = subTree;
+        instance.isMounted = true;
+      } else {
+        const newSubTree = render.call(state, state);
+        patch(instance.subTree, newSubTree, container, anchor);
+        instance.subTree = newSubTree;
+      }
+    };
+    const _effect = new ReactiveEffect(componentUpdateFn, () =>
+      queueJob(update)
+    );
+    const update = () => {
+      _effect.run();
+    };
+    instance.update = update;
+    update();
   };
 
   // 更新属性 {style class event attribute}
@@ -183,9 +219,9 @@ export function createRenderer(rendererOptions) {
 
   /**
    * 类型相同，更新 children
-   * @param n1
-   * @param n2
-   * @param el
+   * @param {} n1 旧节点
+   * @param {} n2 新节点
+   * @param {} el
    * 1. 旧文本，新数组
    * 2. 旧文本，新文本，替换
    * 3. 旧文本，新null ，删除旧的
@@ -265,6 +301,14 @@ export function createRenderer(rendererOptions) {
       patchChildren(n1, n2, container);
     }
   };
+  const processComponent = (n1, n2, container, anchor) => {
+    if (n1 === null) {
+      mountComponent(n2, container, anchor);
+    } else {
+      updateComponent(n1, n2, container);
+    }
+    let instance = {};
+  };
 
   const patch = (n1, n2, container, anchor?) => {
     if (n1 === n2) {
@@ -275,7 +319,8 @@ export function createRenderer(rendererOptions) {
       unMount(n1);
       n1 = null; // 删除n1，走n2初始化
     }
-    switch (n2.type) {
+    const { type, shapeFlag } = n2;
+    switch (type) {
       case Text:
         processText(n1, n2, container);
         break;
@@ -284,8 +329,12 @@ export function createRenderer(rendererOptions) {
         break;
 
       default:
-        // 更新元素
-        processElement(n1, n2, container, anchor);
+        if (shapeFlag & ShapeFlags.COMPONENT) {
+          processComponent(n1, n2, container, anchor);
+        } else if (shapeFlag & ShapeFlags.ELEMENT) {
+          // 更新元素
+          processElement(n1, n2, container, anchor);
+        }
     }
   };
 

@@ -21,11 +21,12 @@ export function effect(fn: any, options?) {
 
 /**
  * 依赖收集
- * @param {fn} effect传入的执行函数
- * @param {scheduler} 触发函数，会执行effect.run()更新视图
- * @returns {ReactiveEffect} 当前effect实例
+ * @param { Function } fn effect传入的执行函数
+ * @param { Scheduler } scheduler 触发函数，会执行effect.run()更新视图
+ * @returns { ReactiveEffect } ReactiveEffect 当前effect实例
  * @example effect(() => {})
  */
+
 export class ReactiveEffect {
   public active: boolean = true;
   _running = 0; // effec.run()运行中 （避免死循环，state改变，循环调用scheduler）

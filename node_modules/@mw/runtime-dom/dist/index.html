@@ -6,15 +6,33 @@
     <title>runtime-dom</title>
   </head>
   <script type="module">
-    // import { h } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
+    // import {
+    //   h,
+    //   render,
+    //   Text,
+    //   Fragment,
+    // } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
     import { render, h, Text, Fragment } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
 
-    render(h(Fragment, [h("div", "mw"), h("div", "hua")]), domApp);
+    const mwComponent = {
+      data() {
+        return { name: "mw", age: 18 };
+      },
+      render() {
+        // setTimeout(() => {
+        //   this.age++;
+        //   this.age++;
+        // }, 1000);
 
-    setTimeout(() => {
-      render(h(Fragment, [h("div", "mw"), h("div", "qing")]), domApp);
-    }, 2000);
+        return h(Fragment, [
+          h(Text, `name is ${this.name} ,`),
+          h("a", { style: { color: "red" } }, `age is ${this.age}`),
+        ]);
+      },
+    };
+
+    render(h(mwComponent), domApp);
   </script>
   <body>
     <div id="app"></div>
