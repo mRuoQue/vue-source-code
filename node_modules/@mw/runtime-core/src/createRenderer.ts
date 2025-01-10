@@ -1,8 +1,8 @@
-import { hasOwn, isSameVnode, ShapeFlags } from "@mw/shared";
+import { isSameVnode, ShapeFlags } from "@mw/shared";
 import longIncSequeue from "./longIncSequeue";
-import { reactive } from "@mw/reactivity";
 import { ReactiveEffect } from "@mw/reactivity";
 import { queueJob } from "./queueJob";
+import { createComponentInstance, setupComponent } from "./component";
 
 // 定义元素类型
 export const Text = Symbol("Text");
@@ -62,80 +62,8 @@ export function createRenderer(rendererOptions) {
     // el插入到 container
     hostInsert(el, container, anchor);
   };
-
-  /**
-   *
-   * @param {} instance 组件实例
-   * @param {} totlePropsOptions 总的属性
-   */
-  const initProps = (instance, totlePropsOptions) => {
-    let props = {};
-    let attrs = {};
-    let propsOptions = instance.propsOptions;
-
-    if (totlePropsOptions) {
-      for (let key in totlePropsOptions) {
-        const value = totlePropsOptions[key];
-        // 分裂props和attrs
-        if (key in propsOptions) {
-          props[key] = value;
-        } else {
-          attrs[key] = value;
-        }
-      }
-    }
-    instance.attrs = attrs;
-    instance.props = reactive(props);
-  };
-
-  const mountComponent = (n2, container, anchor) => {
-    const { type, props: vnodeProps, children, shapeFlag } = n2;
-    const { data = () => {}, props: propsOptions = {}, render } = type;
-
-    const state = reactive(data());
-    const instance = {
-      state,
-      vnode: n2,
-      subTree: null, // 组件的子树虚拟节点
-      update: null,
-      props: {}, // 组件props = propsOptions在 vnodeProps找的值
-      propsOptions, // 传入的props
-      attrs: {}, // 其他属性 = vnodeProps找的值 - propsOptions
-      commponent: null,
-      isMounted: false,
-      proxy: null, // 代理对象 props.name = proxy.name
-    };
-
-    initProps(instance, vnodeProps);
-    const publicPrototype = {
-      $attrs: (instance) => instance.attrs,
-    };
-    // 映射属性到proxy上
-    instance.proxy = new Proxy(instance, {
-      get(target, key) {
-        const { state, props } = target;
-        if (state && hasOwn(state, key)) {
-          return state[key];
-        } else if (props && hasOwn(props, key)) {
-          return props[key];
-        }
-        const publicGetter = publicPrototype[key]; // 为$attrs添加策略
-        if (publicGetter) {
-          return publicGetter(target);
-        }
-      },
-      set(target, key, value) {
-        const { state, props } = target;
-        if (state && hasOwn(state, key)) {
-          state[key] = value;
-        } else if (props && hasOwn(props, key)) {
-          console.warn(`props is readonly,do not assign to it directly.`);
-        }
-
-        return true;
-      },
-    });
-
+  const setupRenderComponentEffect = (instance, container, anchor) => {
+    const { render } = instance;
     const componentUpdateFn = () => {
       if (!instance.isMounted) {
         const subTree = render.call(instance.proxy, instance.proxy);
@@ -156,6 +84,14 @@ export function createRenderer(rendererOptions) {
     };
     instance.update = update;
     update();
+  };
+
+  const mountComponent = (n2, container, anchor) => {
+    const instance = createComponentInstance(n2);
+
+    setupComponent(instance);
+
+    setupRenderComponentEffect(instance, container, anchor);
   };
 
   // 更新属性 {style class event attribute}
@@ -369,7 +305,6 @@ export function createRenderer(rendererOptions) {
     } else {
       updateComponent(n1, n2, container);
     }
-    let instance = {};
   };
 
   const patch = (n1, n2, container, anchor?) => {

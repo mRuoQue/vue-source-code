@@ -45,7 +45,12 @@
             - 4. 旧节点多出的，unMount(oldVnode.el)
             - 5. 中间部分存map表，如果旧节点找到索引，删除旧节点，新节点找到索引，复用（patch(oldPos, c2[nextPosIndex], el)）及创建新节点（patch(null, newVnode, el, anchor)）。
             - 6. 最长递增子序列优化diff，通过新节点构建新旧索引映射表，根据映射表，找到最长递增子序列，倒序构建子序列，记录上一个子索引，找出倒序更新索引，相同的索引则跳过，否则插入
-
+        - processText : 处理文本
+        - processFragment : 处理fragment
+        - processComponent : 处理组件
+          - 1. 创建组件实例
+          - 2. 给实例挂载属性，并代理属性
+          - 3. 创建effect，执行render，更新dom
 
     - h : 创建虚拟节点
       - 多态判断通过createVnode(type, props, children)创建不同vnode
