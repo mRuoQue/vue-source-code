@@ -51,6 +51,11 @@
           - 1. 创建组件实例
           - 2. 给实例挂载属性，并代理属性
           - 3. 创建effect，执行render，更新dom
+          - 4. 更新组件
+            - 1. 复用旧组件dom
+            - 2. props变化同步新节点vnode，instance上添加标记
+            - 3. 调用instance.update()更新dom
+            - 4. 
 
     - h : 创建虚拟节点
       - 多态判断通过createVnode(type, props, children)创建不同vnode

@@ -15,20 +15,35 @@
     import { render, h, Text, Fragment } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
 
-    const mwComponent = {
+    const child = {
       props: {
         name: String,
-        age: Number,
+      },
+      render() {
+        return h(Text, this.name);
+      },
+    };
+    const mwComponent = {
+      data() {
+        return { flag: true };
       },
       render(proxy) {
-        return h(Fragment, [
-          h("a", `name is ${proxy.$attrs.b}`),
-          h("a", { style: { color: "red" } }, `age is ${proxy.$attrs.a}`),
+        return h(Fragment, null, [
+          h(
+            "button",
+            {
+              onClick: () => {
+                this.flag = !this.flag;
+              },
+            },
+            "button"
+          ),
+          h(child, { name: this.flag ? "flag" : "no-flag" }),
         ]);
       },
     };
 
-    render(h(mwComponent, { a: 1, b: 2, name: "mw", age: 18 }), domApp);
+    render(h(mwComponent, {}), domApp);
   </script>
   <body>
     <div id="app"></div>

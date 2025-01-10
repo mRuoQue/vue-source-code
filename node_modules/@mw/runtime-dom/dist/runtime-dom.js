@@ -657,7 +657,7 @@ function createComponentInstance(vnode) {
     // 传入的props
     attrs: {},
     // 其他属性 = vnodeProps找的值 - propsOptions
-    commponent: null,
+    component: null,
     isMounted: false,
     proxy: null
     // 代理对象 props.name = proxy.name
@@ -672,8 +672,9 @@ function setupComponent(instance) {
   instance.proxy = new Proxy(instance, setHandlers);
   if (!isFunction(data)) {
     console.warn("data must be a function");
+  } else {
+    instance.data = reactive(data.call(instance.proxy));
   }
-  instance.data = reactive(data.call(instance.proxy));
   instance.render = render2;
 }
 var publicPrototype = {
@@ -779,6 +780,10 @@ function createRenderer(rendererOptions2) {
         instance.subTree = subTree;
         instance.isMounted = true;
       } else {
+        const { next } = instance;
+        if (next) {
+          updareComponentPreRender(instance, next);
+        }
         const newSubTree = render3.call(instance.proxy, instance.proxy);
         patch(instance.subTree, newSubTree, container, anchor);
         instance.subTree = newSubTree;
@@ -795,9 +800,61 @@ function createRenderer(rendererOptions2) {
     update();
   };
   const mountComponent = (n2, container, anchor) => {
-    const instance = createComponentInstance(n2);
+    const instance = n2.component = createComponentInstance(n2);
     setupComponent(instance);
     setupRenderComponentEffect(instance, container, anchor);
+  };
+  const isChangeProps = (preProps, nextProps) => {
+    const nextKeys = Object.keys(nextProps);
+    const preLen = Object.keys(preProps)?.length;
+    const nextLen = nextKeys?.length;
+    if (nextLen !== preLen) {
+      return true;
+    }
+    for (let i = 0; i < nextLen; i++) {
+      const key = nextKeys[i];
+      if (nextProps[key] !== preProps[key]) {
+        return true;
+      }
+    }
+    return false;
+  };
+  const updateComponentProps = (instance, preProps, nextProps) => {
+    for (const key in nextProps) {
+      const prevProp = preProps?.[key];
+      const nextProp = nextProps[key];
+      if (prevProp !== nextProp) {
+        instance.props[key] = nextProp;
+      }
+    }
+    for (const key in preProps) {
+      if (!(key in nextProps)) {
+        delete instance.props[key];
+      }
+    }
+  };
+  const updareComponentPreRender = (instance, next) => {
+    instance.next = null;
+    instance.vnode = next;
+    updateComponentProps(instance, instance.props, next.props);
+  };
+  const shouldComponentUpdate = (n1, n2) => {
+    const { props: preProps, children: preChildren } = n1;
+    const { props: nextProps, children: nextChildren } = n2;
+    if (preChildren || nextChildren) {
+      return true;
+    }
+    if (preProps === nextProps) {
+      return false;
+    }
+    return isChangeProps(preProps, nextProps);
+  };
+  const updateComponent = (n1, n2, container) => {
+    const instance = n2.component = n1.component;
+    if (shouldComponentUpdate(n1, n2)) {
+      instance.next = n2;
+      instance.update();
+    }
   };
   const patchProps2 = (oldProps, newProps, el) => {
     for (const key in newProps) {

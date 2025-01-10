@@ -12,7 +12,7 @@ export function createComponentInstance(vnode) {
     props: {}, // 组件props = propsOptions在 vnodeProps找的值
     propsOptions, // 传入的props
     attrs: {}, // 其他属性 = vnodeProps找的值 - propsOptions
-    commponent: null,
+    component: null,
     isMounted: false,
     proxy: null, // 代理对象 props.name = proxy.name
   };
@@ -23,13 +23,16 @@ export function createComponentInstance(vnode) {
 export function setupComponent(instance) {
   const vnodeProps = instance.vnode.props;
   const { data = () => {}, render } = instance.vnode.type;
+
   initProps(instance, vnodeProps);
   // 映射属性到proxy上
   instance.proxy = new Proxy(instance, setHandlers);
   if (!isFunction(data)) {
     console.warn("data must be a function");
+  } else {
+    instance.data = reactive(data.call(instance.proxy));
   }
-  instance.data = reactive(data.call(instance.proxy));
+
   instance.render = render;
 }
 

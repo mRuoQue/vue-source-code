@@ -62,15 +62,24 @@ export function createRenderer(rendererOptions) {
     // el插入到 container
     hostInsert(el, container, anchor);
   };
+
+  // 创建effect更新 dom
   const setupRenderComponentEffect = (instance, container, anchor) => {
     const { render } = instance;
     const componentUpdateFn = () => {
       if (!instance.isMounted) {
+        // 组件的虚拟节点
         const subTree = render.call(instance.proxy, instance.proxy);
         patch(null, subTree, container, anchor);
         instance.subTree = subTree;
         instance.isMounted = true;
       } else {
+        const { next } = instance;
+        if (next) {
+          // 更新组件的状态属性
+          updareComponentPreRender(instance, next);
+        }
+
         const newSubTree = render.call(instance.proxy, instance.proxy);
         patch(instance.subTree, newSubTree, container, anchor);
         instance.subTree = newSubTree;
@@ -87,11 +96,79 @@ export function createRenderer(rendererOptions) {
   };
 
   const mountComponent = (n2, container, anchor) => {
-    const instance = createComponentInstance(n2);
+    // 创建实例
+    const instance = (n2.component = createComponentInstance(n2));
 
+    // 设置实例对象
     setupComponent(instance);
 
+    // 创建effect更新 dom
     setupRenderComponentEffect(instance, container, anchor);
+  };
+
+  const isChangeProps = (preProps, nextProps) => {
+    const nextKeys = Object.keys(nextProps);
+    const preLen = Object.keys(preProps)?.length;
+    const nextLen = nextKeys?.length;
+
+    if (nextLen !== preLen) {
+      return true;
+    }
+    for (let i = 0; i < nextLen; i++) {
+      const key = nextKeys[i];
+      if (nextProps[key] !== preProps[key]) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // 更新组件的props
+  const updateComponentProps = (instance, preProps, nextProps) => {
+    for (const key in nextProps) {
+      const prevProp = preProps?.[key];
+      const nextProp = nextProps[key];
+      if (prevProp !== nextProp) {
+        instance.props[key] = nextProp;
+      }
+    }
+    for (const key in preProps) {
+      if (!(key in nextProps)) {
+        delete instance.props[key];
+      }
+    }
+  };
+
+  const updareComponentPreRender = (instance, next) => {
+    instance.next = null;
+    instance.vnode = next;
+    updateComponentProps(instance, instance.props, next.props);
+  };
+
+  // 组件是否要更新
+  const shouldComponentUpdate = (n1, n2) => {
+    const { props: preProps, children: preChildren } = n1;
+    const { props: nextProps, children: nextChildren } = n2;
+
+    // 更新插槽
+    if (preChildren || nextChildren) {
+      return true;
+    }
+    if (preProps === nextProps) {
+      return false;
+    }
+    // 更新props
+    return isChangeProps(preProps, nextProps);
+  };
+  const updateComponent = (n1, n2, container) => {
+    const instance = (n2.component = n1.component);
+    // props有变化更新instance.props
+    if (shouldComponentUpdate(n1, n2)) {
+      // 同步新组件的vnode，更新状态时候，自动更新dom
+      instance.next = n2;
+
+      instance.update();
+    }
   };
 
   // 更新属性 {style class event attribute}
