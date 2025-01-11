@@ -658,6 +658,7 @@ function createComponentInstance(vnode) {
     attrs: {},
     // 其他属性 = vnodeProps找的值 - propsOptions
     component: null,
+    setupState: {},
     isMounted: false,
     proxy: null
     // 代理对象 props.name = proxy.name
@@ -665,28 +666,48 @@ function createComponentInstance(vnode) {
   return instance;
 }
 function setupComponent(instance) {
-  const vnodeProps = instance.vnode.props;
-  const { data = () => {
-  }, render: render2 } = instance.vnode.type;
+  const { vnode } = instance;
+  const vnodeProps = vnode.props;
   initProps(instance, vnodeProps);
   instance.proxy = new Proxy(instance, setHandlers);
+  const { data = () => {
+  }, render: render2, setup } = vnode.type;
+  const context = {
+    attrs: instance.attrs,
+    slots: vnode.children,
+    emit: () => {
+    },
+    expose: {}
+  };
+  if (setup) {
+    const setupCall = setup(instance.props, context);
+    if (isFunction(setupCall)) {
+      instance.render = setupCall;
+    } else {
+      instance.setupState = proxyRefs(setupCall);
+    }
+  }
   if (!isFunction(data)) {
     console.warn("data must be a function");
   } else {
     instance.data = reactive(data.call(instance.proxy));
   }
-  instance.render = render2;
+  if (!instance.render) {
+    instance.render = render2;
+  }
 }
 var publicPrototype = {
   $attrs: (instance) => instance.attrs
 };
 var setHandlers = {
   get(target, key) {
-    const { data, props } = target;
+    const { data, props, setupState } = target;
     if (data && hasOwn(data, key)) {
       return data[key];
     } else if (props && hasOwn(props, key)) {
       return props[key];
+    } else if (setupState && hasOwn(setupState, key)) {
+      return setupState[key];
     }
     const publicGetter = publicPrototype[key];
     if (publicGetter) {
@@ -694,11 +715,13 @@ var setHandlers = {
     }
   },
   set(target, key, value) {
-    const { data, props } = target;
+    const { data, props, setupState } = target;
     if (data && hasOwn(data, key)) {
       data[key] = value;
     } else if (props && hasOwn(props, key)) {
       console.warn(`props is readonly,do not assign to it directly.`);
+    } else if (setupState && hasOwn(setupState, key)) {
+      setupState[key] = value;
     }
     return true;
   }
@@ -1066,7 +1089,12 @@ function createVnode(type, props, children) {
     shapeFlag
   };
   if (children) {
-    vnode.shapeFlag |= isString(children) ? ShapeFlags.TEXT_CHILDREN : ShapeFlags.ARRAY_CHILDREN;
+    if (isArray2(children)) {
+      vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
+    } else {
+      children = String(children);
+      vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN;
+    }
   }
   return vnode;
 }
@@ -1106,6 +1134,7 @@ export {
   activeEffect,
   computed,
   createRenderer,
+  createVnode,
   createWatch,
   effect,
   h,

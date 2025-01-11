@@ -24,9 +24,12 @@ export function createVnode(type, props?, children?) {
   };
   // 为vnode添加shapeFlag
   if (children) {
-    vnode.shapeFlag |= isString(children)
-      ? ShapeFlags.TEXT_CHILDREN
-      : ShapeFlags.ARRAY_CHILDREN;
+    if (isArray(children)) {
+      vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
+    } else {
+      children = String(children);
+      vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN;
+    }
   }
 
   return vnode;

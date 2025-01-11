@@ -1,4 +1,4 @@
-import { reactive } from "@mw/reactivity";
+import { proxyRefs, reactive } from "@mw/reactivity";
 import { hasOwn, isFunction } from "@mw/shared";
 
 export function createComponentInstance(vnode) {
@@ -13,6 +13,7 @@ export function createComponentInstance(vnode) {
     propsOptions, // 传入的props
     attrs: {}, // 其他属性 = vnodeProps找的值 - propsOptions
     component: null,
+    setupState: {},
     isMounted: false,
     proxy: null, // 代理对象 props.name = proxy.name
   };
@@ -21,19 +22,39 @@ export function createComponentInstance(vnode) {
 }
 
 export function setupComponent(instance) {
-  const vnodeProps = instance.vnode.props;
-  const { data = () => {}, render } = instance.vnode.type;
-
+  const { vnode } = instance;
+  const vnodeProps = vnode.props;
   initProps(instance, vnodeProps);
   // 映射属性到proxy上
   instance.proxy = new Proxy(instance, setHandlers);
+  const { data = () => {}, render, setup } = vnode.type;
+
+  const context = {
+    attrs: instance.attrs,
+    slots: vnode.children,
+    emit: () => {},
+    expose: {},
+  };
+
+  if (setup) {
+    const setupCall = setup(instance.props, context);
+    if (isFunction(setupCall)) {
+      instance.render = setupCall;
+    } else {
+      instance.setupState = proxyRefs(setupCall);
+    }
+  }
+
   if (!isFunction(data)) {
     console.warn("data must be a function");
   } else {
     instance.data = reactive(data.call(instance.proxy));
   }
 
-  instance.render = render;
+  // 优先使用setup中的 render
+  if (!instance.render) {
+    instance.render = render;
+  }
 }
 
 const publicPrototype = {
@@ -41,11 +62,13 @@ const publicPrototype = {
 };
 const setHandlers = {
   get(target, key) {
-    const { data, props } = target;
+    const { data, props, setupState } = target;
     if (data && hasOwn(data, key)) {
       return data[key];
     } else if (props && hasOwn(props, key)) {
       return props[key];
+    } else if (setupState && hasOwn(setupState, key)) {
+      return setupState[key];
     }
     const publicGetter = publicPrototype[key]; // 为$attrs添加策略
     if (publicGetter) {
@@ -53,11 +76,13 @@ const setHandlers = {
     }
   },
   set(target, key, value) {
-    const { data, props } = target;
+    const { data, props, setupState } = target;
     if (data && hasOwn(data, key)) {
       data[key] = value;
     } else if (props && hasOwn(props, key)) {
       console.warn(`props is readonly,do not assign to it directly.`);
+    } else if (setupState && hasOwn(setupState, key)) {
+      setupState[key] = value;
     }
 
     return true;
