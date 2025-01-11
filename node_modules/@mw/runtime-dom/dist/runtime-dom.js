@@ -660,8 +660,9 @@ function createComponentInstance(vnode) {
     component: null,
     setupState: {},
     isMounted: false,
-    proxy: null
+    proxy: null,
     // 代理对象 props.name = proxy.name
+    exposed: null
   };
   return instance;
 }
@@ -675,10 +676,9 @@ function setupComponent(instance) {
   }, render: render2, setup } = vnode.type;
   const context = {
     attrs: instance.attrs,
-    slots: vnode.children,
-    emit: () => {
-    },
-    expose: {}
+    slots: instance.slots,
+    emit: (event, ...args) => initEmit(instance, event, ...args),
+    expose: (v) => instance.exposed = v
   };
   if (setup) {
     const setupCall = setup(instance.props, context);
@@ -759,6 +759,12 @@ var initSlots = (instance, children) => {
     instance.slots = {};
   }
 };
+var initEmit = (instance, event, ...args) => {
+  const eventName = event[0].toUpperCase() + event.slice(1);
+  const onEvent = `on${eventName}`;
+  const fn = instance.vnode.props?.[onEvent];
+  fn && fn(...args);
+};
 
 // packages/runtime-core/src/createRenderer.ts
 var Text = Symbol("Text");
@@ -782,8 +788,11 @@ function createRenderer(rendererOptions2) {
     }
   };
   const unMount = (vnode) => {
-    if (vnode.type === Fragment) {
+    const { type, shapeFlag, component } = vnode;
+    if (type === Fragment) {
       unMountChildren(vnode.children);
+    } else if (shapeFlag & ShapeFlags.COMPONENT) {
+      unMount(component.subTree);
     } else {
       hostRemove(vnode.el);
     }
@@ -821,7 +830,7 @@ function createRenderer(rendererOptions2) {
       } else {
         const { next } = instance;
         if (next) {
-          updareComponentPreRender(instance, next);
+          updateComponentPreRender(instance, next);
         }
         const newSubTree = render3.call(instance.proxy, instance.proxy);
         patch(instance.subTree, newSubTree, container, anchor);
@@ -872,7 +881,7 @@ function createRenderer(rendererOptions2) {
       }
     }
   };
-  const updareComponentPreRender = (instance, next) => {
+  const updateComponentPreRender = (instance, next) => {
     instance.next = null;
     instance.vnode = next;
     updateComponentProps(instance, instance.props, next.props);
@@ -1101,6 +1110,7 @@ function createVnode(type, props, children) {
     key: props?.key,
     type,
     props,
+    // 传入的props
     children,
     shapeFlag
   };

@@ -57,6 +57,11 @@
             - 3. 调用instance.update()更新dom
             - 4. 
       -setup : setup(props,ctx),返回对象则添加到代理属性上，返回函数则赋值 render
+      - $attrs : 代理属性，通过getter获取
+      - $slots : 代理属性，通过getter获取
+      - emit : 自定义事件，从 组件实例上vnode获取到用户传入的props，匹配事件名，调用emit触发事件
+      - expose : 暴露组件实例属性，挂载到instance上 -> exposed
+      - unMount : 卸载组件
     - h : 创建虚拟节点
       - 多态判断通过createVnode(type, props, children)创建不同vnode
       - createVnode : 定义vnode格式，创建shapeFlag对应关系

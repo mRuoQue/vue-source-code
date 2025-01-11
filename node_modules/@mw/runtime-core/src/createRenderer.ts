@@ -30,8 +30,11 @@ export function createRenderer(rendererOptions) {
   };
 
   const unMount = (vnode) => {
-    if (vnode.type === Fragment) {
+    const { type, shapeFlag, component } = vnode;
+    if (type === Fragment) {
       unMountChildren(vnode.children);
+    } else if (shapeFlag & ShapeFlags.COMPONENT) {
+      unMount(component.subTree);
     } else {
       hostRemove(vnode.el);
     }
@@ -77,7 +80,7 @@ export function createRenderer(rendererOptions) {
         const { next } = instance;
         if (next) {
           // 更新组件的状态属性
-          updareComponentPreRender(instance, next);
+          updateComponentPreRender(instance, next);
         }
 
         const newSubTree = render.call(instance.proxy, instance.proxy);
@@ -139,7 +142,7 @@ export function createRenderer(rendererOptions) {
     }
   };
 
-  const updareComponentPreRender = (instance, next) => {
+  const updateComponentPreRender = (instance, next) => {
     instance.next = null;
     instance.vnode = next;
     updateComponentProps(instance, instance.props, next.props);

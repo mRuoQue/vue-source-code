@@ -16,6 +16,7 @@ export function createComponentInstance(vnode) {
     setupState: {},
     isMounted: false,
     proxy: null, // 代理对象 props.name = proxy.name
+    exposed: null,
   };
 
   return instance;
@@ -30,11 +31,12 @@ export function setupComponent(instance) {
   instance.proxy = new Proxy(instance, setHandlers);
   const { data = () => {}, render, setup } = vnode.type;
 
+  // setup入口取值
   const context = {
     attrs: instance.attrs,
-    slots: vnode.children,
-    emit: () => {},
-    expose: {},
+    slots: instance.slots,
+    emit: (event, ...args) => initEmit(instance, event, ...args),
+    expose: (v) => (instance.exposed = v),
   };
 
   if (setup) {
@@ -78,7 +80,7 @@ const setHandlers = {
     } else if (setupState && hasOwn(setupState, key)) {
       return setupState[key];
     }
-    const publicGetter = publicPrototype[key]; // 为$attrs添加策略
+    const publicGetter = publicPrototype[key]; // 为$attrs/$slots等向外暴漏的属性添加策略
     if (publicGetter) {
       return publicGetter(target);
     }
@@ -129,4 +131,11 @@ const initSlots = (instance, children) => {
   } else {
     instance.slots = {};
   }
+};
+
+const initEmit = (instance, event, ...args) => {
+  const eventName = event[0].toUpperCase() + event.slice(1);
+  const onEvent = `on${eventName}`;
+  const fn = instance.vnode.props?.[onEvent];
+  fn && fn(...args);
 };

@@ -18,7 +18,7 @@ export function createVnode(type, props?, children?) {
     el: null,
     key: props?.key,
     type,
-    props,
+    props, // 传入的props
     children,
     shapeFlag,
   };

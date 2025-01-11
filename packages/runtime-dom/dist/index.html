@@ -28,17 +28,22 @@
 
     const mwComponent = {
       setup(props, { attrs, emit, expose, slots }) {
+        expose({ name: "mw" });
         return (proxy) => {
-          return h(renderSlots, null, {
-            header: (v) => h("div", "header" + v),
-            default: () => h("div", "default"),
-            footer: (v) => h("div", "footer" + v),
-          });
+          return h(
+            "button",
+            { onClick: () => emit("emitEvent", "hello world") },
+            "button"
+          );
         };
       },
     };
 
-    render(h(mwComponent, {}), domApp);
+    render(h(mwComponent, { onEmitEvent: (v) => alert(v) }), domApp);
+
+    setTimeout(() => {
+      render(h(null), domApp);
+    }, 1000);
   </script>
   <body>
     <div id="app"></div>
