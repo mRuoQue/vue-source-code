@@ -12,40 +12,45 @@
     //   Text,
     //   Fragment,
     //   ref,
-    // } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
-    import { render, h, Text, Fragment, ref } from "./runtime-dom.js";
+    //   Teleport,
+    // } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.prod.js";
+    import { render, h, Text, Fragment, ref, Teleport } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
 
-    const renderSlots = {
-      render(proxy) {
-        return h(Fragment, [
-          proxy.$slots.header("slots"),
-          proxy.$slots.default(),
-          proxy.$slots.footer("slots"),
-        ]);
-      },
-    };
+    // const renderSlots = {
+    //   render(proxy) {
+    //     return h(Fragment, [
+    //       proxy.$slots.header("slots"),
+    //       proxy.$slots.default(),
+    //       proxy.$slots.footer("slots"),
+    //     ]);
+    //   },
+    // };
 
-    const mwComponent = {
-      setup(props, { attrs, emit, expose, slots }) {
-        expose({ name: "mw" });
-        return (proxy) => {
-          return h(
-            "button",
-            { onClick: () => emit("emitEvent", "hello world") },
-            "button"
-          );
-        };
-      },
-    };
+    // const mwComponent = {
+    //   setup(props, { attrs, emit, expose, slots }) {
+    //     expose({ name: "mw" });
+    //     return (proxy) => {
+    //       return h(
+    //         "div",
+    //         { onClick: () => emit("emitEvent", "hello world!") },
+    //         "Teleport"
+    //       );
+    //     };
+    //   },
+    // };
 
-    render(h(mwComponent, { onEmitEvent: (v) => alert(v) }), domApp);
+    // render(h(mwComponent, { onEmitEvent: (v) => alert(v) }), domApp);
+
+    render(h(Teleport, { to: "#tele" }, h("div", {}, "teleports")), domApp);
 
     setTimeout(() => {
-      render(h(null), domApp);
-    }, 1000);
+      render(null, domApp);
+    }, 2000);
   </script>
   <body>
     <div id="app"></div>
+    <div id="tele"></div>
+    <div id="tele2"></div>
   </body>
 </html>

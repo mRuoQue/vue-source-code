@@ -793,6 +793,8 @@ function createRenderer(rendererOptions2) {
       unMountChildren(vnode.children);
     } else if (shapeFlag & ShapeFlags.COMPONENT) {
       unMount(component.subTree);
+    } else if (shapeFlag & ShapeFlags.TELEPORT) {
+      vnode.type.remove(vnode, unMountChildren);
     } else {
       hostRemove(vnode.el);
     }
@@ -1035,7 +1037,7 @@ function createRenderer(rendererOptions2) {
     patchProps2(oldProps, newProps, el);
     patchChildren(n1, n2, el);
   };
-  const processElement = (n1, n2, container, anchor) => {
+  const processElement = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
       mountElement(n2, container, anchor);
     } else {
@@ -1052,21 +1054,21 @@ function createRenderer(rendererOptions2) {
       }
     }
   };
-  const processFragment = (n1, n2, container, anchor) => {
+  const processFragment = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
       mountChildren(n2.children, container);
     } else {
       patchChildren(n1, n2, container);
     }
   };
-  const processComponent = (n1, n2, container, anchor) => {
+  const processComponent = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
       mountComponent(n2, container, anchor);
     } else {
       updateComponent(n1, n2, container);
     }
   };
-  const patch = (n1, n2, container, anchor) => {
+  const patch = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === n2) {
       return;
     }
@@ -1080,19 +1082,29 @@ function createRenderer(rendererOptions2) {
         processText(n1, n2, container);
         break;
       case Fragment:
-        processFragment(n1, n2, container, anchor);
+        processFragment(n1, n2, container, anchor, parentComponent);
         break;
       default:
-        if (shapeFlag & ShapeFlags.COMPONENT) {
-          processComponent(n1, n2, container, anchor);
-        } else if (shapeFlag & ShapeFlags.ELEMENT) {
-          processElement(n1, n2, container, anchor);
+        if (shapeFlag & ShapeFlags.ELEMENT) {
+          processElement(n1, n2, container, anchor, parentComponent);
+        } else if (shapeFlag & ShapeFlags.TELEPORT) {
+          const renderFn = {
+            mountChildren,
+            patchChildren,
+            moveTo(vnode, container2, anchor2) {
+              const el = vnode.component ? vnode.component.subTree.el : vnode.el;
+              hostInsert(el, container2, anchor2);
+            }
+          };
+          type.process(n1, n2, container, anchor, parentComponent, renderFn);
+        } else if (shapeFlag & ShapeFlags.COMPONENT) {
+          processComponent(n1, n2, container, anchor, parentComponent);
         }
     }
   };
   const render2 = (vnode, container) => {
     if (vnode === null) {
-      unMount(vnode);
+      unMount(container._vnode);
     } else {
       patch(container._vnode || null, vnode, container);
       container._vnode = vnode;
@@ -1101,9 +1113,38 @@ function createRenderer(rendererOptions2) {
   return { render: render2 };
 }
 
+// packages/runtime-core/src/Teleport.ts
+var Teleport = {
+  __isTeleport: true,
+  process(n1, n2, container, anchor, parentComponent, internals) {
+    let { mountChildren, patchChildren, moveTo } = internals;
+    if (!n1) {
+      const target = n2.target = document.querySelector(n2.props.to);
+      if (target) {
+        mountChildren(n2.children, target, anchor);
+      }
+    } else {
+      patchChildren(n1, n2, n2.target, parentComponent);
+      if (n2.props.to !== n1.props.to) {
+        const newTarget = document.querySelector(n2.props.to);
+        n2.children.forEach((child) => {
+          moveTo(child, newTarget, anchor);
+        });
+      }
+    }
+  },
+  remove(vnode, unMountChildren) {
+    const { children, shapeFlag } = vnode;
+    if (shapeFlag & ShapeFlags.TELEPORT) {
+      unMountChildren(children);
+    }
+  }
+};
+var isTeleport = (v) => v.__isTeleport;
+
 // packages/runtime-core/src/createVnode.ts
 function createVnode(type, props, children) {
-  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : 0;
+  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isTeleport(type) ? ShapeFlags.TELEPORT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : 0;
   const vnode = {
     __v_isVnode: true,
     el: null,
@@ -1158,6 +1199,7 @@ var render = function(vnode, container) {
 export {
   Fragment,
   ReactiveEffect,
+  Teleport,
   Text,
   activeEffect,
   computed,
@@ -1168,6 +1210,7 @@ export {
   h,
   isReactive,
   isRef,
+  isTeleport,
   proxyRefs,
   reactive,
   ref,

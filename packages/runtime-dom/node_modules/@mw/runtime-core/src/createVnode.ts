@@ -1,4 +1,5 @@
 import { isArray, isObject, isString, ShapeFlags } from "@mw/shared";
+import { isTeleport } from "./Teleport";
 
 /**
  * 创建虚拟dom
@@ -10,6 +11,8 @@ import { isArray, isObject, isString, ShapeFlags } from "@mw/shared";
 export function createVnode(type, props?, children?) {
   const shapeFlag = isString(type)
     ? ShapeFlags.ELEMENT
+    : isTeleport(type)
+    ? ShapeFlags.TELEPORT
     : isObject(type)
     ? ShapeFlags.STATEFUL_COMPONENT
     : 0;

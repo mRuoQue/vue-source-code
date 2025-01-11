@@ -35,6 +35,8 @@ export function createRenderer(rendererOptions) {
       unMountChildren(vnode.children);
     } else if (shapeFlag & ShapeFlags.COMPONENT) {
       unMount(component.subTree);
+    } else if (shapeFlag & ShapeFlags.TELEPORT) {
+      vnode.type.remove(vnode, unMountChildren);
     } else {
       hostRemove(vnode.el);
     }
@@ -348,7 +350,7 @@ export function createRenderer(rendererOptions) {
     patchChildren(n1, n2, el);
   };
 
-  const processElement = (n1, n2, container, anchor) => {
+  const processElement = (n1, n2, container, anchor, parentComponent) => {
     // n1=null初始化 创建元素，否则差异化更新
     if (n1 === null) {
       mountElement(n2, container, anchor);
@@ -370,7 +372,7 @@ export function createRenderer(rendererOptions) {
       }
     }
   };
-  const processFragment = (n1, n2, container, anchor) => {
+  const processFragment = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
       // 创建
       mountChildren(n2.children, container);
@@ -379,7 +381,7 @@ export function createRenderer(rendererOptions) {
       patchChildren(n1, n2, container);
     }
   };
-  const processComponent = (n1, n2, container, anchor) => {
+  const processComponent = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
       mountComponent(n2, container, anchor);
     } else {
@@ -387,7 +389,7 @@ export function createRenderer(rendererOptions) {
     }
   };
 
-  const patch = (n1, n2, container, anchor?) => {
+  const patch = (n1, n2, container, anchor?, parentComponent?) => {
     if (n1 === n2) {
       return;
     }
@@ -403,15 +405,27 @@ export function createRenderer(rendererOptions) {
         processText(n1, n2, container);
         break;
       case Fragment:
-        processFragment(n1, n2, container, anchor);
+        processFragment(n1, n2, container, anchor, parentComponent);
         break;
 
       default:
-        if (shapeFlag & ShapeFlags.COMPONENT) {
-          processComponent(n1, n2, container, anchor);
-        } else if (shapeFlag & ShapeFlags.ELEMENT) {
+        if (shapeFlag & ShapeFlags.ELEMENT) {
           // 更新元素
-          processElement(n1, n2, container, anchor);
+          processElement(n1, n2, container, anchor, parentComponent);
+        } else if (shapeFlag & ShapeFlags.TELEPORT) {
+          const renderFn = {
+            mountChildren,
+            patchChildren,
+            moveTo(vnode, container, anchor) {
+              const el = vnode.component
+                ? vnode.component.subTree.el
+                : vnode.el;
+              hostInsert(el, container, anchor);
+            },
+          };
+          type.process(n1, n2, container, anchor, parentComponent, renderFn);
+        } else if (shapeFlag & ShapeFlags.COMPONENT) {
+          processComponent(n1, n2, container, anchor, parentComponent);
         }
     }
   };
@@ -420,7 +434,7 @@ export function createRenderer(rendererOptions) {
   const render = (vnode, container) => {
     // vnode=null,移除当前vnode，删除当前el
     if (vnode === null) {
-      unMount(vnode);
+      unMount(container._vnode);
     } else {
       patch(container._vnode || null, vnode, container);
       // 保存上一次的vnode
