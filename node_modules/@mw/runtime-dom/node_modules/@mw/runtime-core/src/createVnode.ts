@@ -26,6 +26,9 @@ export function createVnode(type, props?, children?) {
   if (children) {
     if (isArray(children)) {
       vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
+    } else if (isObject(children)) {
+      // 组件的children是slot，且 h的第二个参数必须要传
+      vnode.shapeFlag |= ShapeFlags.SLOTS_CHILDREN;
     } else {
       children = String(children);
       vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN;

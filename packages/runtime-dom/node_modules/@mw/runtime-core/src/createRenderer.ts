@@ -394,6 +394,7 @@ export function createRenderer(rendererOptions) {
       n1 = null; // 删除n1，走n2初始化
     }
     const { type, shapeFlag } = n2;
+
     switch (type) {
       case Text:
         processText(n1, n2, container);

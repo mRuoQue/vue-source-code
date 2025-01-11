@@ -56,7 +56,7 @@
             - 2. props变化同步新节点vnode，instance上添加标记
             - 3. 调用instance.update()更新dom
             - 4. 
-
+      -setup : setup(props,ctx),返回对象则添加到代理属性上，返回函数则赋值 render
     - h : 创建虚拟节点
       - 多态判断通过createVnode(type, props, children)创建不同vnode
       - createVnode : 定义vnode格式，创建shapeFlag对应关系

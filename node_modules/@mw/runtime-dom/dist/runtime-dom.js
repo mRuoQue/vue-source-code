@@ -669,6 +669,7 @@ function setupComponent(instance) {
   const { vnode } = instance;
   const vnodeProps = vnode.props;
   initProps(instance, vnodeProps);
+  initSlots(instance, vnode.children);
   instance.proxy = new Proxy(instance, setHandlers);
   const { data = () => {
   }, render: render2, setup } = vnode.type;
@@ -697,11 +698,18 @@ function setupComponent(instance) {
   }
 }
 var publicPrototype = {
-  $attrs: (instance) => instance.attrs
+  $attrs: (instance) => instance.attrs,
+  $slots: (instance) => instance.slots
+  // $emit: (instance) => instance.emit,
+  // $expose: (instance) => instance.expose,
+  // $setup: (instance) => instance.setupState,
+  // $data: (instance) => instance.data,
+  // $props: (instance) => instance.props,
+  // $options: (instance) => instance.vnode.type,
 };
 var setHandlers = {
   get(target, key) {
-    const { data, props, setupState } = target;
+    const { data, props, setupState, slots } = target;
     if (data && hasOwn(data, key)) {
       return data[key];
     } else if (props && hasOwn(props, key)) {
@@ -715,7 +723,7 @@ var setHandlers = {
     }
   },
   set(target, key, value) {
-    const { data, props, setupState } = target;
+    const { data, props, setupState, slots } = target;
     if (data && hasOwn(data, key)) {
       data[key] = value;
     } else if (props && hasOwn(props, key)) {
@@ -742,6 +750,14 @@ var initProps = (instance, vnodeProps) => {
   }
   instance.attrs = attrs;
   instance.props = reactive(props);
+};
+var initSlots = (instance, children) => {
+  const { vnode } = instance;
+  if (vnode.shapeFlag & ShapeFlags.SLOTS_CHILDREN) {
+    instance.slots = children;
+  } else {
+    instance.slots = {};
+  }
 };
 
 // packages/runtime-core/src/createRenderer.ts
@@ -1091,6 +1107,8 @@ function createVnode(type, props, children) {
   if (children) {
     if (isArray2(children)) {
       vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
+    } else if (isObject(children)) {
+      vnode.shapeFlag |= ShapeFlags.SLOTS_CHILDREN;
     } else {
       children = String(children);
       vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN;

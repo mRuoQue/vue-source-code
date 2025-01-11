@@ -16,46 +16,25 @@
     import { render, h, Text, Fragment, ref } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
 
-    // const child = {
-    //   props: {
-    //     name: String,
-    //   },
-    //   render() {
-    //     return h(Text, this.name);
-    //   },
-    // };
-    // const mwComponent = {
-    //   data() {
-    //     return { flag: true };
-    //   },
-    //   render(proxy) {
-    //     return h(Fragment, null, [
-    //       h(
-    //         "button",
-    //         {
-    //           onClick: () => {
-    //             this.flag = !this.flag;
-    //           },
-    //         },
-    //         "button"
-    //       ),
-    //       h(child, { name: this.flag ? "flag" : "no-flag" }),
-    //     ]);
-    //   },
-    // };
+    const renderSlots = {
+      render(proxy) {
+        return h(Fragment, [
+          proxy.$slots.header("slots"),
+          proxy.$slots.default(),
+          proxy.$slots.footer("slots"),
+        ]);
+      },
+    };
 
     const mwComponent = {
       setup(props, { attrs, emit, expose, slots }) {
-        const num = ref(1);
-        setTimeout(() => {
-          num.value = 2;
-        }, 2000);
-        return {
-          num: num,
+        return (proxy) => {
+          return h(renderSlots, null, {
+            header: (v) => h("div", "header" + v),
+            default: () => h("div", "default"),
+            footer: (v) => h("div", "footer" + v),
+          });
         };
-      },
-      render(proxy) {
-        return h("div", proxy.num);
       },
     };
 

@@ -1,5 +1,5 @@
 import { proxyRefs, reactive } from "@mw/reactivity";
-import { hasOwn, isFunction } from "@mw/shared";
+import { hasOwn, isFunction, ShapeFlags } from "@mw/shared";
 
 export function createComponentInstance(vnode) {
   let { props: propsOptions = {} } = vnode?.type;
@@ -25,6 +25,7 @@ export function setupComponent(instance) {
   const { vnode } = instance;
   const vnodeProps = vnode.props;
   initProps(instance, vnodeProps);
+  initSlots(instance, vnode.children);
   // 映射属性到proxy上
   instance.proxy = new Proxy(instance, setHandlers);
   const { data = () => {}, render, setup } = vnode.type;
@@ -59,10 +60,17 @@ export function setupComponent(instance) {
 
 const publicPrototype = {
   $attrs: (instance) => instance.attrs,
+  $slots: (instance) => instance.slots,
+  // $emit: (instance) => instance.emit,
+  // $expose: (instance) => instance.expose,
+  // $setup: (instance) => instance.setupState,
+  // $data: (instance) => instance.data,
+  // $props: (instance) => instance.props,
+  // $options: (instance) => instance.vnode.type,
 };
 const setHandlers = {
   get(target, key) {
-    const { data, props, setupState } = target;
+    const { data, props, setupState, slots } = target;
     if (data && hasOwn(data, key)) {
       return data[key];
     } else if (props && hasOwn(props, key)) {
@@ -76,7 +84,7 @@ const setHandlers = {
     }
   },
   set(target, key, value) {
-    const { data, props, setupState } = target;
+    const { data, props, setupState, slots } = target;
     if (data && hasOwn(data, key)) {
       data[key] = value;
     } else if (props && hasOwn(props, key)) {
@@ -112,4 +120,13 @@ const initProps = (instance, vnodeProps) => {
   }
   instance.attrs = attrs;
   instance.props = reactive(props);
+};
+
+const initSlots = (instance, children) => {
+  const { vnode } = instance;
+  if (vnode.shapeFlag & ShapeFlags.SLOTS_CHILDREN) {
+    instance.slots = children;
+  } else {
+    instance.slots = {};
+  }
 };
