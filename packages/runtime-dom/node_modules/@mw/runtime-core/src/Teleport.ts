@@ -7,7 +7,7 @@ export const Teleport = {
     if (!n1) {
       const target = (n2.target = document.querySelector(n2.props.to));
       if (target) {
-        mountChildren(n2.children, target, anchor);
+        mountChildren(n2.children, target, anchor, parentComponent);
       }
     } else {
       patchChildren(n1, n2, n2.target, parentComponent);

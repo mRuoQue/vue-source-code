@@ -643,7 +643,7 @@ function queueJob(job) {
 }
 
 // packages/runtime-core/src/component.ts
-function createComponentInstance(vnode) {
+function createComponentInstance(vnode, parent) {
   let { props: propsOptions = {} } = vnode?.type;
   const instance = {
     data: null,
@@ -662,7 +662,10 @@ function createComponentInstance(vnode) {
     isMounted: false,
     proxy: null,
     // 代理对象 props.name = proxy.name
-    exposed: null
+    exposed: null,
+    parent,
+    // 父组件
+    provides: parent ? parent.provides : /* @__PURE__ */ Object.create(null)
   };
   return instance;
 }
@@ -681,7 +684,9 @@ function setupComponent(instance) {
     expose: (v) => instance.exposed = v
   };
   if (setup) {
+    setCurrentInstance(instance);
     const setupCall = setup(instance.props, context);
+    unsetCurrentInstance();
     if (isFunction(setupCall)) {
       instance.render = setupCall;
     } else {
@@ -765,10 +770,80 @@ var initEmit = (instance, event, ...args) => {
   const fn = instance.vnode.props?.[onEvent];
   fn && fn(...args);
 };
+var currentInstance = null;
+var setCurrentInstance = (instance) => {
+  currentInstance = instance;
+};
+var unsetCurrentInstance = () => {
+  currentInstance = null;
+};
+
+// packages/runtime-core/src/Teleport.ts
+var Teleport = {
+  __isTeleport: true,
+  process(n1, n2, container, anchor, parentComponent, internals) {
+    let { mountChildren, patchChildren, moveTo } = internals;
+    if (!n1) {
+      const target = n2.target = document.querySelector(n2.props.to);
+      if (target) {
+        mountChildren(n2.children, target, anchor, parentComponent);
+      }
+    } else {
+      patchChildren(n1, n2, n2.target, parentComponent);
+      if (n2.props.to !== n1.props.to) {
+        const newTarget = document.querySelector(n2.props.to);
+        n2.children.forEach((child) => {
+          moveTo(child, newTarget, anchor);
+        });
+      }
+    }
+  },
+  remove(vnode, unMountChildren) {
+    const { children, shapeFlag } = vnode;
+    if (shapeFlag & ShapeFlags.TELEPORT) {
+      unMountChildren(children);
+    }
+  }
+};
+var isTeleport = (v) => v.__isTeleport;
+
+// packages/runtime-core/src/createVnode.ts
+function createVnode(type, props, children) {
+  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isTeleport(type) ? ShapeFlags.TELEPORT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : 0;
+  const vnode = {
+    __v_isVnode: true,
+    el: null,
+    key: props?.key,
+    type,
+    props,
+    // 传入的props
+    children,
+    shapeFlag
+  };
+  if (children) {
+    if (isArray2(children)) {
+      vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
+    } else if (isObject(children)) {
+      vnode.shapeFlag |= ShapeFlags.SLOTS_CHILDREN;
+    } else {
+      children = String(children);
+      vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN;
+    }
+  }
+  return vnode;
+}
 
 // packages/runtime-core/src/createRenderer.ts
 var Text = Symbol("Text");
 var Fragment = Symbol("Fragment");
+var dealWithChildrenIsString = (children) => {
+  for (let i = 0; i < children.length; i++) {
+    if (isString(children[i])) {
+      children[i] = createVnode(Text, null, String(children[i]));
+    }
+  }
+  return children;
+};
 function createRenderer(rendererOptions2) {
   const {
     createElement: hostCreateElement,
@@ -781,10 +856,10 @@ function createRenderer(rendererOptions2) {
     nextSbiling: hostnNxtSbiling,
     patchProps: hostPatchProps
   } = rendererOptions2;
-  const mountChildren = (children, container) => {
+  const mountChildren = (children, container, parentComponent) => {
+    dealWithChildrenIsString(children);
     for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-      patch(null, child, container);
+      patch(null, children[i], container, parentComponent);
     }
   };
   const unMount = (vnode) => {
@@ -805,7 +880,7 @@ function createRenderer(rendererOptions2) {
       unMount(child);
     }
   };
-  const mountElement = (vnode, container, anchor) => {
+  const mountElement = (vnode, container, anchor, parentComponent) => {
     const { type, props, children, shapeFlag } = vnode;
     const el = vnode.el = hostCreateElement(type);
     if (props) {
@@ -817,16 +892,16 @@ function createRenderer(rendererOptions2) {
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       hostSetElementText(el, children);
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-      mountChildren(children, el);
+      mountChildren(children, el, parentComponent);
     }
     hostInsert(el, container, anchor);
   };
-  const setupRenderComponentEffect = (instance, container, anchor) => {
+  const setupRenderComponentEffect = (instance, container, anchor, parentComponent) => {
     const { render: render3 } = instance;
     const componentUpdateFn = () => {
       if (!instance.isMounted) {
         const subTree = render3.call(instance.proxy, instance.proxy);
-        patch(null, subTree, container, anchor);
+        patch(null, subTree, container, anchor, instance);
         instance.subTree = subTree;
         instance.isMounted = true;
       } else {
@@ -835,7 +910,7 @@ function createRenderer(rendererOptions2) {
           updateComponentPreRender(instance, next);
         }
         const newSubTree = render3.call(instance.proxy, instance.proxy);
-        patch(instance.subTree, newSubTree, container, anchor);
+        patch(instance.subTree, newSubTree, container, anchor, instance);
         instance.subTree = newSubTree;
       }
     };
@@ -849,10 +924,13 @@ function createRenderer(rendererOptions2) {
     instance.update = update;
     update();
   };
-  const mountComponent = (n2, container, anchor) => {
-    const instance = n2.component = createComponentInstance(n2);
+  const mountComponent = (n2, container, anchor, parentComponent) => {
+    const instance = n2.component = createComponentInstance(
+      n2,
+      parentComponent
+    );
     setupComponent(instance);
-    setupRenderComponentEffect(instance, container, anchor);
+    setupRenderComponentEffect(instance, container, anchor, parentComponent);
   };
   const isChangeProps = (preProps, nextProps) => {
     const nextKeys = Object.keys(nextProps);
@@ -1001,9 +1079,9 @@ function createRenderer(rendererOptions2) {
       }
     }
   };
-  const patchChildren = (n1, n2, el) => {
+  const patchChildren = (n1, n2, el, parentComponent) => {
     const c1 = n1.children;
-    const c2 = n2.children;
+    const c2 = dealWithChildrenIsString(n2.children);
     const prevShapeFlag = n1.shapeFlag;
     const shapeFlag = n2.shapeFlag;
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
@@ -1025,23 +1103,23 @@ function createRenderer(rendererOptions2) {
           hostSetElementText(el, "");
         }
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-          mountChildren(c2, el);
+          mountChildren(c2, el, parentComponent);
         }
       }
     }
   };
-  const patchElement = (n1, n2, container) => {
+  const patchElement = (n1, n2, container, parentComponent) => {
     const el = n2.el = n1.el;
     const oldProps = n1.props || {};
     const newProps = n2.props || {};
     patchProps2(oldProps, newProps, el);
-    patchChildren(n1, n2, el);
+    patchChildren(n1, n2, el, parentComponent);
   };
   const processElement = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
-      mountElement(n2, container, anchor);
+      mountElement(n2, container, anchor, parentComponent);
     } else {
-      patchElement(n1, n2, container);
+      patchElement(n1, n2, container, parentComponent);
     }
   };
   const processText = (n1, n2, container) => {
@@ -1056,14 +1134,14 @@ function createRenderer(rendererOptions2) {
   };
   const processFragment = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
-      mountChildren(n2.children, container);
+      mountChildren(n2.children, container, parentComponent);
     } else {
-      patchChildren(n1, n2, container);
+      patchChildren(n1, n2, container, parentComponent);
     }
   };
   const processComponent = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
-      mountComponent(n2, container, anchor);
+      mountComponent(n2, container, anchor, parentComponent);
     } else {
       updateComponent(n1, n2, container);
     }
@@ -1113,61 +1191,6 @@ function createRenderer(rendererOptions2) {
   return { render: render2 };
 }
 
-// packages/runtime-core/src/Teleport.ts
-var Teleport = {
-  __isTeleport: true,
-  process(n1, n2, container, anchor, parentComponent, internals) {
-    let { mountChildren, patchChildren, moveTo } = internals;
-    if (!n1) {
-      const target = n2.target = document.querySelector(n2.props.to);
-      if (target) {
-        mountChildren(n2.children, target, anchor);
-      }
-    } else {
-      patchChildren(n1, n2, n2.target, parentComponent);
-      if (n2.props.to !== n1.props.to) {
-        const newTarget = document.querySelector(n2.props.to);
-        n2.children.forEach((child) => {
-          moveTo(child, newTarget, anchor);
-        });
-      }
-    }
-  },
-  remove(vnode, unMountChildren) {
-    const { children, shapeFlag } = vnode;
-    if (shapeFlag & ShapeFlags.TELEPORT) {
-      unMountChildren(children);
-    }
-  }
-};
-var isTeleport = (v) => v.__isTeleport;
-
-// packages/runtime-core/src/createVnode.ts
-function createVnode(type, props, children) {
-  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isTeleport(type) ? ShapeFlags.TELEPORT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : 0;
-  const vnode = {
-    __v_isVnode: true,
-    el: null,
-    key: props?.key,
-    type,
-    props,
-    // 传入的props
-    children,
-    shapeFlag
-  };
-  if (children) {
-    if (isArray2(children)) {
-      vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
-    } else if (isObject(children)) {
-      vnode.shapeFlag |= ShapeFlags.SLOTS_CHILDREN;
-    } else {
-      children = String(children);
-      vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN;
-    }
-  }
-  return vnode;
-}
-
 // packages/runtime-core/src/h.ts
 function h(type, props, children) {
   const argLen = arguments.length;
@@ -1191,6 +1214,32 @@ function h(type, props, children) {
   return createVnode(type, props, children);
 }
 
+// packages/runtime-core/src/provide.ts
+function provide(key, value) {
+  if (!currentInstance) {
+    return;
+  }
+  let provides = currentInstance.provides;
+  const parentProvides = currentInstance?.parent?.provides;
+  if (parentProvides === provides) {
+    provides = currentInstance.provides = Object.create(provides);
+  }
+  provides[key] = value;
+}
+function inject(key, defaultValue) {
+  if (!currentInstance) {
+    return;
+  }
+  const provides = currentInstance.parent?.provides;
+  if (provides) {
+    if (key in provides) {
+      return provides[key];
+    } else {
+      return defaultValue;
+    }
+  }
+}
+
 // packages/runtime-dom/src/index.ts
 var rendererOptions = extend(nodeOptions, { patchProps });
 var render = function(vnode, container) {
@@ -1208,9 +1257,11 @@ export {
   createWatch,
   effect,
   h,
+  inject,
   isReactive,
   isRef,
   isTeleport,
+  provide,
   proxyRefs,
   reactive,
   ref,

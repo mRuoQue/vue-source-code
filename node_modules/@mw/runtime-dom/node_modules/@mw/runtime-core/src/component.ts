@@ -1,7 +1,7 @@
 import { proxyRefs, reactive } from "@mw/reactivity";
 import { hasOwn, isFunction, ShapeFlags } from "@mw/shared";
 
-export function createComponentInstance(vnode) {
+export function createComponentInstance(vnode, parent) {
   let { props: propsOptions = {} } = vnode?.type;
 
   const instance = {
@@ -17,6 +17,8 @@ export function createComponentInstance(vnode) {
     isMounted: false,
     proxy: null, // 代理对象 props.name = proxy.name
     exposed: null,
+    parent, // 父组件
+    provides: parent ? parent.provides : Object.create(null),
   };
 
   return instance;
@@ -40,7 +42,10 @@ export function setupComponent(instance) {
   };
 
   if (setup) {
+    setCurrentInstance(instance);
     const setupCall = setup(instance.props, context);
+    unsetCurrentInstance();
+
     if (isFunction(setupCall)) {
       instance.render = setupCall;
     } else {
@@ -138,4 +143,14 @@ const initEmit = (instance, event, ...args) => {
   const onEvent = `on${eventName}`;
   const fn = instance.vnode.props?.[onEvent];
   fn && fn(...args);
+};
+
+export let currentInstance = null;
+export const getCurrentInstance = () => currentInstance;
+
+export const setCurrentInstance = (instance) => {
+  currentInstance = instance;
+};
+export const unsetCurrentInstance = () => {
+  currentInstance = null;
 };

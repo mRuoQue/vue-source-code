@@ -13,8 +13,19 @@
     //   Fragment,
     //   ref,
     //   Teleport,
+    //   provide,
+    //   inject,
     // } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.prod.js";
-    import { render, h, Text, Fragment, ref, Teleport } from "./runtime-dom.js";
+    import {
+      render,
+      h,
+      Text,
+      Fragment,
+      ref,
+      Teleport,
+      provide,
+      inject,
+    } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
 
     // const renderSlots = {
@@ -42,15 +53,47 @@
 
     // render(h(mwComponent, { onEmitEvent: (v) => alert(v) }), domApp);
 
-    render(h(Teleport, { to: "#tele" }, h("div", {}, "teleports")), domApp);
+    // render(h(Teleport, { to: "#tele" }, h("div", {}, "teleports")), domApp);
 
-    setTimeout(() => {
-      render(null, domApp);
-    }, 2000);
+    // setTimeout(() => {
+    //   render(null, domApp);
+    // }, 2000);
+
+    const C1 = {
+      setup() {
+        const name = ref("mw");
+        provide("name", name);
+        return () => {
+          return h(C2, { C1: "c1" }, "c1");
+        };
+      },
+    };
+    const C2 = {
+      setup(props, {}) {
+        return (proxy) => {
+          return h(C3, { C2: "c2" }, "c2");
+        };
+      },
+    };
+    const C3 = {
+      setup() {
+        const name = inject("name");
+
+        setTimeout(() => {
+          name.value = "mw2";
+        }, 2000);
+
+        return () => {
+          return h("div", { C3: "c3" }, [name.value]);
+        };
+      },
+    };
+
+    render(h(C1), domApp);
   </script>
   <body>
     <div id="app"></div>
-    <div id="tele"></div>
-    <div id="tele2"></div>
+    <!-- <div id="tele"></div>
+    <div id="tele2"></div> -->
   </body>
 </html>
