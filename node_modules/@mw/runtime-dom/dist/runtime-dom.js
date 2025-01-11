@@ -896,7 +896,7 @@ function createRenderer(rendererOptions2) {
     }
     hostInsert(el, container, anchor);
   };
-  const setupRenderComponentEffect = (instance, container, anchor, parentComponent) => {
+  const setupRenderComponentEffect = (instance, container, anchor) => {
     const { render: render3 } = instance;
     const componentUpdateFn = () => {
       if (!instance.isMounted) {
@@ -930,7 +930,7 @@ function createRenderer(rendererOptions2) {
       parentComponent
     );
     setupComponent(instance);
-    setupRenderComponentEffect(instance, container, anchor, parentComponent);
+    setupRenderComponentEffect(instance, container, anchor);
   };
   const isChangeProps = (preProps, nextProps) => {
     const nextKeys = Object.keys(nextProps);

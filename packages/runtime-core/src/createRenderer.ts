@@ -78,17 +78,13 @@ export function createRenderer(rendererOptions) {
   };
 
   // 创建effect更新 dom
-  const setupRenderComponentEffect = (
-    instance,
-    container,
-    anchor,
-    parentComponent
-  ) => {
+  const setupRenderComponentEffect = (instance, container, anchor) => {
     const { render } = instance;
     const componentUpdateFn = () => {
       if (!instance.isMounted) {
         // 组件的虚拟节点
         const subTree = render.call(instance.proxy, instance.proxy);
+
         patch(null, subTree, container, anchor, instance);
         instance.subTree = subTree;
         instance.isMounted = true;
@@ -100,6 +96,7 @@ export function createRenderer(rendererOptions) {
         }
 
         const newSubTree = render.call(instance.proxy, instance.proxy);
+        // 更新组件状态，添加组件实例instance
         patch(instance.subTree, newSubTree, container, anchor, instance);
         instance.subTree = newSubTree;
       }
@@ -125,7 +122,7 @@ export function createRenderer(rendererOptions) {
     setupComponent(instance);
 
     // 创建effect更新 dom
-    setupRenderComponentEffect(instance, container, anchor, parentComponent);
+    setupRenderComponentEffect(instance, container, anchor);
   };
 
   const isChangeProps = (preProps, nextProps) => {
