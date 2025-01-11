@@ -68,6 +68,8 @@
         - emit : 自定义事件，从 组件实例上vnode获取到用户传入的props，匹配事件名，调用emit触发事件
         - expose : 暴露组件实例属性，挂载到instance上 -> exposed
         - unMount : 卸载组件
+
+        - Teleport : 内置组件，设置shapeFlag,在当前type上添加process方法，渲染使用，传入mountChildren、patchChildren、unMountChildren方法，供外部使用，并且实现moveTo（hostInsert）方法 用来移动当前的Teleport组件到指定位置
         
       - h : 创建虚拟节点
         - 多态判断通过createVnode(type, props, children)创建不同vnode
