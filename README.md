@@ -4,16 +4,19 @@
 ## vue3源码阅读，实现核心功能
 
 
- **1. reactivity**
+ **1. reactivity**  
+
       - reactive
         - createReactiveObject ： 创建响应式对象
         - track : 创建dep，收集依赖,
         - trigger : 触发依赖
+
       - effect
         - createReactiveEffect : 创建响应式effect
         - run : 执行effect
         - stop : 停止effect
         - scheduler : 调用run，更新数据
+
       - ref
       - computed
       - watch
@@ -21,7 +24,8 @@
 
  响应式流程：
 
- **2. runtime-dom & runtime-core**
+ **2. runtime-dom & runtime-core**  
+
       - nodeOptions : dom 节点选项
         - createElement : 创建dom节点
         - patchAttr :  修改dom节点属性(其他类型的属性)
@@ -45,6 +49,7 @@
               - 4. 旧节点多出的，unMount(oldVnode.el)
               - 5. 中间部分存map表，如果旧节点找到索引，删除旧节点，新节点找到索引，复用（patch(oldPos, c2[nextPosIndex], el)）及创建新节点（patch(null, newVnode, el, anchor)）。
               - 6. 最长递增子序列优化diff，通过新节点构建新旧索引映射表，根据映射表，找到最长递增子序列，倒序构建子序列，记录上一个子索引，找出倒序更新索引，相同的索引则跳过，否则插入
+
           - processText : 处理文本
           - processFragment : 处理fragment
           - processComponent : 处理组件
@@ -56,14 +61,17 @@
               - 2. props变化同步新节点vnode，instance上添加标记
               - 3. 调用instance.update()更新dom
               - 4. 
+
         -setup : setup(props,ctx),返回对象则添加到代理属性上，返回函数则赋值 render
         - $attrs : 代理属性，通过getter获取
         - $slots : 代理属性，通过getter获取
         - emit : 自定义事件，从 组件实例上vnode获取到用户传入的props，匹配事件名，调用emit触发事件
         - expose : 暴露组件实例属性，挂载到instance上 -> exposed
         - unMount : 卸载组件
+        
       - h : 创建虚拟节点
         - 多态判断通过createVnode(type, props, children)创建不同vnode
         - createVnode : 定义vnode格式，创建shapeFlag对应关系
+        
       - render : 内置渲染方式，通过patch-diff 调用dom api实现更新
     
