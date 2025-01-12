@@ -157,6 +157,9 @@ function isFunction(value) {
 function isString(value) {
   return typeof value === "string";
 }
+function isNumber(value) {
+  return typeof value === "number";
+}
 function isArray2(value) {
   return Array.isArray(value);
 }
@@ -643,6 +646,7 @@ function queueJob(job) {
 }
 
 // packages/runtime-core/src/component.ts
+var currentInstance = null;
 function createComponentInstance(vnode, parent) {
   let { props: propsOptions = {} } = vnode?.type;
   const instance = {
@@ -770,7 +774,7 @@ var initEmit = (instance, event, ...args) => {
   const fn = instance.vnode.props?.[onEvent];
   fn && fn(...args);
 };
-var currentInstance = null;
+var getCurrentInstance = () => currentInstance;
 var setCurrentInstance = (instance) => {
   currentInstance = instance;
 };
@@ -833,12 +837,45 @@ function createVnode(type, props, children) {
   return vnode;
 }
 
+// packages/runtime-core/src/Lifecycle.ts
+var Lifecycles = /* @__PURE__ */ ((Lifecycles2) => {
+  Lifecycles2["BEFORE_MOUNT"] = "bm";
+  Lifecycles2["MOUNTED"] = "m";
+  Lifecycles2["BEFORE_UPDATE"] = "bu";
+  Lifecycles2["UPDATED"] = "u";
+  Lifecycles2["BEFORE_UNMOUNT"] = "bum";
+  Lifecycles2["UNMOUNTED"] = "um";
+  return Lifecycles2;
+})(Lifecycles || {});
+var createHooks = (lifecycle) => {
+  return (hook, target = currentInstance) => {
+    if (target) {
+      const hooks = target[lifecycle] || (target[lifecycle] = []);
+      const cacheInstanceForHook = () => {
+        setCurrentInstance(target);
+        hook();
+        unsetCurrentInstance();
+      };
+      hooks.push(cacheInstanceForHook);
+    }
+  };
+};
+var invokerhooks = (hooks) => {
+  hooks?.forEach((hook) => hook());
+};
+var onBeforeMount = createHooks("bm" /* BEFORE_MOUNT */);
+var onMounted = createHooks("m" /* MOUNTED */);
+var onBeforeUpdate = createHooks("bu" /* BEFORE_UPDATE */);
+var onUpdated = createHooks("u" /* UPDATED */);
+var onBeforeUnmount = createHooks("bum" /* BEFORE_UNMOUNT */);
+var onUnmounted = createHooks("um" /* UNMOUNTED */);
+
 // packages/runtime-core/src/createRenderer.ts
 var Text = Symbol("Text");
 var Fragment = Symbol("Fragment");
 var dealWithChildrenIsString = (children) => {
   for (let i = 0; i < children.length; i++) {
-    if (isString(children[i])) {
+    if (isString(children[i]) || isNumber(children[i])) {
       children[i] = createVnode(Text, null, String(children[i]));
     }
   }
@@ -899,19 +936,32 @@ function createRenderer(rendererOptions2) {
   const setupRenderComponentEffect = (instance, container, anchor) => {
     const { render: render3 } = instance;
     const componentUpdateFn = () => {
+      const { bm, m } = instance;
       if (!instance.isMounted) {
+        if (bm) {
+          invokerhooks(bm);
+        }
         const subTree = render3.call(instance.proxy, instance.proxy);
         patch(null, subTree, container, anchor, instance);
         instance.subTree = subTree;
         instance.isMounted = true;
+        if (m) {
+          invokerhooks(m);
+        }
       } else {
-        const { next } = instance;
+        const { next, bu, u } = instance;
         if (next) {
           updateComponentPreRender(instance, next);
+        }
+        if (bu) {
+          invokerhooks(bu);
         }
         const newSubTree = render3.call(instance.proxy, instance.proxy);
         patch(instance.subTree, newSubTree, container, anchor, instance);
         instance.subTree = newSubTree;
+        if (u) {
+          invokerhooks(u);
+        }
       }
     };
     const _effect = new ReactiveEffect(
@@ -1081,7 +1131,7 @@ function createRenderer(rendererOptions2) {
   };
   const patchChildren = (n1, n2, el, parentComponent) => {
     const c1 = n1.children;
-    const c2 = dealWithChildrenIsString(n2.children);
+    const c2 = isArray2(n2.children) ? dealWithChildrenIsString(n2.children) : n2.children;
     const prevShapeFlag = n1.shapeFlag;
     const shapeFlag = n2.shapeFlag;
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
@@ -1247,25 +1297,38 @@ var render = function(vnode, container) {
 };
 export {
   Fragment,
+  Lifecycles,
   ReactiveEffect,
   Teleport,
   Text,
   activeEffect,
   computed,
+  createComponentInstance,
   createRenderer,
   createVnode,
   createWatch,
+  currentInstance,
   effect,
+  getCurrentInstance,
   h,
   inject,
+  invokerhooks,
   isReactive,
   isRef,
   isTeleport,
+  onBeforeMount,
+  onBeforeUnmount,
+  onBeforeUpdate,
+  onMounted,
+  onUnmounted,
+  onUpdated,
   provide,
   proxyRefs,
   reactive,
   ref,
   render,
+  setCurrentInstance,
+  setupComponent,
   toReactive,
   toRef,
   toRefs,
@@ -1273,6 +1336,7 @@ export {
   trackRefValue,
   triggerEffect,
   triggerRefValue,
+  unsetCurrentInstance,
   watch,
   watchEffect
 };

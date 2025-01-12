@@ -1,16 +1,23 @@
-import { isSameVnode, isString, ShapeFlags } from "@mw/shared";
+import {
+  isArray,
+  isNumber,
+  isSameVnode,
+  isString,
+  ShapeFlags,
+} from "@mw/shared";
 import longIncSequeue from "./longIncSequeue";
 import { ReactiveEffect } from "@mw/reactivity";
 import { queueJob } from "./queueJob";
 import { createComponentInstance, setupComponent } from "./component";
 import { createVnode } from "./createVnode";
+import { invokerhooks } from "./Lifecycle";
 
 // 定义元素类型
 export const Text = Symbol("Text");
 export const Fragment = Symbol("Fragment");
 const dealWithChildrenIsString = (children) => {
   for (let i = 0; i < children.length; i++) {
-    if (isString(children[i])) {
+    if (isString(children[i]) || isNumber(children[i])) {
       children[i] = createVnode(Text, null, String(children[i]));
     }
   }
@@ -81,24 +88,41 @@ export function createRenderer(rendererOptions) {
   const setupRenderComponentEffect = (instance, container, anchor) => {
     const { render } = instance;
     const componentUpdateFn = () => {
+      const { bm, m } = instance;
       if (!instance.isMounted) {
+        // onBeforeMount
+        if (bm) {
+          invokerhooks(bm);
+        }
         // 组件的虚拟节点
         const subTree = render.call(instance.proxy, instance.proxy);
-
         patch(null, subTree, container, anchor, instance);
         instance.subTree = subTree;
         instance.isMounted = true;
+        // onMounted
+        if (m) {
+          invokerhooks(m);
+        }
       } else {
-        const { next } = instance;
+        const { next, bu, u } = instance;
         if (next) {
           // 更新组件的状态属性
           updateComponentPreRender(instance, next);
+        }
+
+        //  onBeforeUpdate
+        if (bu) {
+          invokerhooks(bu);
         }
 
         const newSubTree = render.call(instance.proxy, instance.proxy);
         // 更新组件状态，添加组件实例instance
         patch(instance.subTree, newSubTree, container, anchor, instance);
         instance.subTree = newSubTree;
+        // onUpdated
+        if (u) {
+          invokerhooks(u);
+        }
       }
     };
     const _effect = new ReactiveEffect(componentUpdateFn, () =>
@@ -326,9 +350,13 @@ export function createRenderer(rendererOptions) {
    */
   const patchChildren = (n1, n2, el, parentComponent) => {
     const c1 = n1.children;
-    const c2 = dealWithChildrenIsString(n2.children);
+    // 兼容一下传入字符串问题
+    const c2 = isArray(n2.children)
+      ? dealWithChildrenIsString(n2.children)
+      : n2.children;
     const prevShapeFlag = n1.shapeFlag;
     const shapeFlag = n2.shapeFlag;
+
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         unMountChildren(c1);
@@ -413,7 +441,6 @@ export function createRenderer(rendererOptions) {
       n1 = null; // 删除n1，走n2初始化
     }
     const { type, shapeFlag } = n2;
-
     switch (type) {
       case Text:
         processText(n1, n2, container);

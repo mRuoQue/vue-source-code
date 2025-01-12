@@ -1,6 +1,8 @@
 import { proxyRefs, reactive } from "@mw/reactivity";
 import { hasOwn, isFunction, ShapeFlags } from "@mw/shared";
 
+export let currentInstance = null;
+
 export function createComponentInstance(vnode, parent) {
   let { props: propsOptions = {} } = vnode?.type;
 
@@ -145,7 +147,6 @@ const initEmit = (instance, event, ...args) => {
   fn && fn(...args);
 };
 
-export let currentInstance = null;
 export const getCurrentInstance = () => currentInstance;
 
 export const setCurrentInstance = (instance) => {

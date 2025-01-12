@@ -15,6 +15,11 @@
     //   Teleport,
     //   provide,
     //   inject,
+    //   onBeforeMount,
+    //   onMounted,
+    //   onBeforeUpdate,
+    //   onUpdated,
+    //   getCurrentInstance,
     // } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.prod.js";
     import {
       render,
@@ -25,6 +30,11 @@
       Teleport,
       provide,
       inject,
+      onBeforeMount,
+      onMounted,
+      onBeforeUpdate,
+      onUpdated,
+      getCurrentInstance,
     } from "./runtime-dom.js";
     const domApp = document.querySelector("#app");
 
@@ -59,37 +69,59 @@
     //   render(null, domApp);
     // }, 2000);
 
-    const C1 = {
-      setup() {
-        const name = ref("mw");
-        provide("name", name);
-        return () => {
-          return h(C2, { C1: "c1" }, "c1");
-        };
+    const ChildComponent = {
+      props: {
+        childName: String,
       },
-    };
-    const C2 = {
-      setup(props, {}) {
-        return (proxy) => {
-          return h(C3, { C2: "c2" }, "c2");
-        };
-      },
-    };
-    const C3 = {
-      setup() {
-        const name = inject("name");
+      setup(props) {
+        console.log("children");
 
+        onBeforeMount(() => {
+          console.log("child onBeforeMount");
+        });
+        onMounted(() => {
+          console.log("child onMounted");
+        });
+        onBeforeUpdate(() => {
+          console.log("child onBeforeUpdate");
+        });
+        onUpdated(() => {
+          console.log("child onUpdated");
+        });
+        return (proxy) => {
+          return h("div", props.childName);
+        };
+      },
+    };
+    const LifecycleComponment = {
+      setup(props) {
+        console.log("parent");
+
+        onBeforeMount(() => {
+          console.log("parent onBeforeMount");
+        });
+        onMounted(() => {
+          console.log("parent onMounted");
+        });
+        onBeforeUpdate(() => {
+          console.log("parent onBeforeUpdate");
+        });
+        onUpdated(() => {
+          console.log("parent onUpdated");
+        });
+
+        const name = ref("mw");
         setTimeout(() => {
           name.value = "mw2";
         }, 2000);
 
-        return () => {
-          return h("div", { C3: "c3" }, [name.value]);
+        return (proxy) => {
+          return h(ChildComponent, { childName: name.value });
         };
       },
     };
 
-    render(h(C1), domApp);
+    render(h(LifecycleComponment), domApp);
   </script>
   <body>
     <div id="app"></div>
