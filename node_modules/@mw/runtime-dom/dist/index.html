@@ -54,61 +54,6 @@
 
     const domApp = document.querySelector("#app");
 
-    const attr = {
-      name: "mw",
-      onBeforeEnter(el) {},
-      onEnter(el) {},
-      onLeave(el) {},
-    };
-
-    render(
-      h(Transition, attr, {
-        a: 1,
-        default: () => {
-          return h("div", {
-            style: {
-              width: "100px",
-              height: "100px",
-              background: "green",
-            },
-          });
-        },
-      }),
-      domApp
-    );
-
-    setTimeout(() => {
-      render(
-        h(Transition, attr, {
-          b: 2,
-          default: () => {
-            return h("p", {
-              style: { width: "100px", height: "100px", background: "red" },
-            });
-          },
-        }),
-        domApp
-      );
-    }, 2000);
-
-    setTimeout(() => {
-      render(
-        h(Transition, attr, {
-          c: 3,
-          default: () => {
-            return h("div", {
-              style: {
-                width: "100px",
-                height: "100px",
-                background: "blue",
-              },
-            });
-          },
-        }),
-        domApp
-      );
-    }, 3000);
-
     // const mwComponent = {
     //   setup(props, { attrs, emit, expose, slots }) {
     //     expose({ name: "mw" });
@@ -126,68 +71,80 @@
 
     // render(h(Teleport, { to: "#tele" }, h("div", {}, "teleports")), domApp);
 
-    // const C1 = {
-    //   setup(props) {
-    //     onMounted(() => {
-    //       console.log("C1 onMounted");
-    //     });
-    //     return () => {
-    //       return h("div", "c1");
-    //     };
-    //   },
-    // };
-    // const C2 = {
-    //   setup(props) {
-    //     onMounted(() => {
-    //       console.log("C2 onMounted");
-    //     });
-    //     return () => {
-    //       return h("div", "C2");
-    //     };
-    //   },
-    // };
-    // const C3 = {
-    //   setup(props) {
-    //     onMounted(() => {
-    //       console.log("C3 onMounted");
-    //     });
-    //     return () => {
-    //       return h("div", "C3");
-    //     };
-    //   },
-    // };
+    const C1 = {
+      setup(props) {
+        onMounted(() => {
+          console.log("C1 onMounted");
+        });
+        return () => {
+          return h("div", "c1");
+        };
+      },
+    };
+    const C2 = {
+      setup(props) {
+        onMounted(() => {
+          console.log("C2 onMounted");
+        });
+        return () => {
+          return h("div", "C2");
+        };
+      },
+    };
+    const C3 = {
+      setup(props) {
+        onMounted(() => {
+          console.log("C3 onMounted");
+        });
+        return () => {
+          return h("div", "C3");
+        };
+      },
+    };
 
-    // render(
-    //   h(KeepAlive, null, {
-    //     default: () => h(C1),
-    //   }),
-    //   domApp
-    // );
-    // setTimeout(() => {
-    //   render(
-    //     h(KeepAlive, null, {
-    //       default: () => h(C2),
-    //     }),
-    //     domApp
-    //   );
-    // }, 1000);
+    render(
+      h(
+        KeepAlive,
+        { max: 2 },
+        {
+          default: () => h(C1, { key: "c1" }),
+        }
+      ),
+      domApp
+    );
+    setTimeout(() => {
+      render(
+        h(KeepAlive, null, {
+          default: () => h(C2, { key: "c2" }),
+        }),
+        domApp
+      );
+    }, 1000);
 
-    // setTimeout(() => {
-    //   render(
-    //     h(KeepAlive, null, {
-    //       default: () => h(C3),
-    //     }),
-    //     domApp
-    //   );
-    // }, 2000);
-    // setTimeout(() => {
-    //   render(
-    //     h(KeepAlive, null, {
-    //       default: () => h(C2),
-    //     }),
-    //     domApp
-    //   );
-    // }, 3000);
+    setTimeout(() => {
+      render(
+        h(KeepAlive, null, {
+          default: () => h(C3, { key: "c3" }),
+        }),
+        domApp
+      );
+    }, 2000);
+    setTimeout(() => {
+      render(
+        h(KeepAlive, null, {
+          default: () => h(C2, { key: "c2" }),
+        }),
+        domApp
+      );
+    }, 3000);
+    setTimeout(() => {
+      render(
+        h(KeepAlive, null, {
+          default: () => h(C1, { key: "c1" }),
+        }),
+        domApp
+      );
+    }, 4000);
   </script>
   <body>
     <div id="app"></div>

@@ -5,7 +5,7 @@ import {
   isString,
   ShapeFlags,
 } from "@mw/shared";
-import { isTeleport } from "./components/Teleport";
+import { isTeleport } from "./functionalComponent/Teleport";
 
 /**
  * 创建虚拟dom

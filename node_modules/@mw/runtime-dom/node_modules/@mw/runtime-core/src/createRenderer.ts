@@ -11,6 +11,7 @@ import { queueJob } from "./queueJob";
 import { createComponentInstance, setupComponent } from "./component";
 import { createVnode } from "./createVnode";
 import { invokerhooks } from "./Lifecycle";
+import { isKeepAlive } from "./functionalComponent/KeepAlive";
 
 // 定义元素类型
 export const Text = Symbol("Text");
@@ -45,16 +46,21 @@ export function createRenderer(rendererOptions) {
     }
   };
 
-  const unMount = (vnode) => {
+  const unMount = (vnode, parentComponent) => {
     const { type, shapeFlag, component, transition, el } = vnode;
-    const handleRemove = () => hostRemove(vnode.el);
-    if (type === Fragment) {
-      unMountChildren(vnode.children);
+    const handleRemove = () => {
+      hostRemove(vnode.el);
+    };
+    if (vnode.shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
+      parentComponent.ctx.deactive(vnode);
+    } else if (type === Fragment) {
+      unMountChildren(vnode.children, parentComponent);
     } else if (shapeFlag & ShapeFlags.COMPONENT) {
-      unMount(component.subTree);
+      unMount(component.subTree, parentComponent);
     } else if (shapeFlag & ShapeFlags.TELEPORT) {
       vnode.type.remove(vnode, unMountChildren);
     } else {
+      // Transition 组件移除
       if (transition) {
         transition.leave(el, handleRemove);
       } else {
@@ -63,10 +69,10 @@ export function createRenderer(rendererOptions) {
     }
   };
 
-  const unMountChildren = (children) => {
+  const unMountChildren = (children, parentComponent) => {
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
-      unMount(child);
+      unMount(child, parentComponent);
     }
   };
   const mountElement = (vnode, container, anchor, parentComponent) => {
@@ -163,6 +169,18 @@ export function createRenderer(rendererOptions) {
       parentComponent
     ));
 
+    // 组件时KeepAlive，为ctx添加属性
+    if (isKeepAlive(n2)) {
+      instance.ctx.renderer = {
+        createElement: hostCreateElement,
+        setElementText: hostSetElementText,
+        moveTo(vnode, container, anchor) {
+          hostInsert(vnode.component.subTree.el, container);
+        },
+        unMount,
+      };
+    }
+
     // 设置实例对象
     setupComponent(instance);
 
@@ -206,7 +224,7 @@ export function createRenderer(rendererOptions) {
   const updateComponentPreRender = (instance, next) => {
     instance.next = null;
     instance.vnode = next;
-    updateComponentProps(instance, instance.props, next.props);
+    updateComponentProps(instance, instance.props, (next.props = {}));
     // 更新插槽
     Object.assign(instance.slots, next.children);
   };
@@ -256,7 +274,7 @@ export function createRenderer(rendererOptions) {
   };
 
   // diff
-  const patchKeyedChildren = (c1, c2, el) => {
+  const patchKeyedChildren = (c1, c2, el, parentComponent) => {
     let i = 0; // 记录每次同步的位置
     const l1 = c1.length;
     const l2 = c2.length;
@@ -304,7 +322,7 @@ export function createRenderer(rendererOptions) {
       // 旧节点多 删除
       if (i <= e1) {
         while (i <= e1) {
-          unMount(c1[i].el);
+          unMount(c1[i].el, parentComponent);
           i++;
         }
       }
@@ -328,7 +346,7 @@ export function createRenderer(rendererOptions) {
         const nextPosIndex = keyToNewIndexMap.get(oldPos.key);
 
         if (nextPosIndex == undefined) {
-          unMount(oldPos);
+          unMount(oldPos, parentComponent);
         } else {
           // 新旧更新节点映射关联 newIndex -> oldIndex
           newIndexToOldIndexMap[nextPosIndex - s2] = i;
@@ -382,7 +400,7 @@ export function createRenderer(rendererOptions) {
 
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-        unMountChildren(c1);
+        unMountChildren(c1, parentComponent);
       }
       // 设置新文本
       if (c1 !== c2) {
@@ -392,9 +410,9 @@ export function createRenderer(rendererOptions) {
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           // 都是数组
-          patchKeyedChildren(c1, c2, el);
+          patchKeyedChildren(c1, c2, el, parentComponent);
         } else {
-          unMountChildren(c1);
+          unMountChildren(c1, parentComponent);
         }
       } else {
         if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
@@ -448,7 +466,12 @@ export function createRenderer(rendererOptions) {
   };
   const processComponent = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
-      mountComponent(n2, container, anchor, parentComponent);
+      if (n2.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE) {
+        // keepAlive渲染 逻辑
+        parentComponent.ctx.active(n2, container, anchor);
+      } else {
+        mountComponent(n2, container, anchor, parentComponent);
+      }
     } else {
       updateComponent(n1, n2, container);
     }
@@ -460,7 +483,7 @@ export function createRenderer(rendererOptions) {
     }
     // 判断是否是同一个vnode,是删除n1，初始化n2
     if (n1 && !isSameVnode(n1, n2)) {
-      unMount(n1);
+      unMount(n1, parentComponent);
       n1 = null; // 删除n1，走n2初始化
     }
     const { type, shapeFlag } = n2;
@@ -477,6 +500,7 @@ export function createRenderer(rendererOptions) {
           // 更新元素
           processElement(n1, n2, container, anchor, parentComponent);
         } else if (shapeFlag & ShapeFlags.TELEPORT) {
+          // Teleport
           const renderFn = {
             mountChildren,
             patchChildren,
@@ -496,10 +520,9 @@ export function createRenderer(rendererOptions) {
 
   // 调用runtime-dom中创建dom API ,创建元素渲染到 container
   const render = (vnode, container) => {
-    // debugger;
     // vnode=null,移除当前vnode，删除当前el
     if (vnode === null) {
-      unMount(container._vnode);
+      unMount(container._vnode, null);
     } else {
       patch(container._vnode || null, vnode, container);
       // 保存上一次的vnode

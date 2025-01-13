@@ -669,7 +669,9 @@ function createComponentInstance(vnode, parent) {
     exposed: null,
     parent,
     // 父组件
-    provides: parent ? parent.provides : /* @__PURE__ */ Object.create(null)
+    provides: parent ? parent.provides : /* @__PURE__ */ Object.create(null),
+    ctx: {}
+    // KeepAlive组件存储dom的缓存集合
   };
   return instance;
 }
@@ -781,7 +783,7 @@ var unsetCurrentInstance = () => {
   currentInstance = null;
 };
 
-// packages/runtime-core/src/components/Teleport.ts
+// packages/runtime-core/src/functionalComponent/Teleport.ts
 var Teleport = {
   __isTeleport: true,
   process(n1, n2, container, anchor, parentComponent, internals) {
@@ -869,6 +871,81 @@ var onUpdated = createHooks("u" /* UPDATED */);
 var onBeforeUnmount = createHooks("bum" /* BEFORE_UNMOUNT */);
 var onUnmounted = createHooks("um" /* UNMOUNTED */);
 
+// packages/runtime-core/src/functionalComponent/KeepAlive.ts
+var KeepAlive = {
+  props: {
+    max: {
+      type: Number,
+      default: 5
+    }
+  },
+  __isKeepAlive: true,
+  setup(props, { slots }) {
+    const { max } = props;
+    const keys = /* @__PURE__ */ new Set();
+    const cacheKeepAlive = /* @__PURE__ */ new Map();
+    const instance = getCurrentInstance();
+    let pendingCacheKey = null;
+    const { createElement, moveTo, unMount } = instance?.ctx?.renderer;
+    const cacheSubTree = () => {
+      cacheKeepAlive.set(pendingCacheKey, instance.subTree);
+    };
+    function handleReset(vnode) {
+      let shapeFlag = vnode.shapeFlag;
+      if (shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
+        shapeFlag -= ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE;
+      }
+      if (shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE) {
+        shapeFlag -= ShapeFlags.COMPONENT_KEPT_ALIVE;
+      }
+      vnode.shapeFlag = shapeFlag;
+    }
+    function handleUnMount(vnode) {
+      handleReset(vnode);
+      unMount(vnode);
+    }
+    function purnedCacheEntry(key) {
+      const maxKeyCache = cacheKeepAlive.get(key);
+      if (maxKeyCache) {
+        handleUnMount(maxKeyCache);
+        cacheKeepAlive.delete(key);
+        keys.delete(key);
+      }
+    }
+    const storageContainer = createElement("div");
+    instance.ctx.active = (el, container, anchor) => {
+      moveTo(el, container, anchor);
+    };
+    instance.ctx.deactive = (el) => {
+      moveTo(el, storageContainer, null);
+    };
+    onMounted(cacheSubTree);
+    onUpdated(cacheSubTree);
+    return (proxy) => {
+      const vnode = slots.default();
+      const comp = vnode.type;
+      const key = vnode.key == null ? comp : vnode.key;
+      const cacheVnode = cacheKeepAlive.get(key);
+      pendingCacheKey = key;
+      if (cacheVnode) {
+        vnode.component = cacheVnode.component;
+        vnode.shapeFlag |= ShapeFlags.COMPONENT_KEPT_ALIVE;
+        keys.delete(key);
+        keys.add(key);
+      } else {
+        keys.add(key);
+        if (max && keys.size > max) {
+          let maxKey = keys.keys().next().value;
+          purnedCacheEntry(maxKey);
+        }
+      }
+      vnode.shapeFlag |= ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE;
+      return vnode;
+    };
+  }
+};
+var isKeepAlive = (v) => v.type.__isKeepAlive;
+
 // packages/runtime-core/src/createRenderer.ts
 var Text = Symbol("Text");
 var Fragment = Symbol("Fragment");
@@ -898,13 +975,17 @@ function createRenderer(rendererOptions2) {
       patch(null, children[i], container, parentComponent);
     }
   };
-  const unMount = (vnode) => {
+  const unMount = (vnode, parentComponent) => {
     const { type, shapeFlag, component, transition, el } = vnode;
-    const handleRemove = () => hostRemove(vnode.el);
-    if (type === Fragment) {
-      unMountChildren(vnode.children);
+    const handleRemove = () => {
+      hostRemove(vnode.el);
+    };
+    if (vnode.shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
+      parentComponent.ctx.deactive(vnode);
+    } else if (type === Fragment) {
+      unMountChildren(vnode.children, parentComponent);
     } else if (shapeFlag & ShapeFlags.COMPONENT) {
-      unMount(component.subTree);
+      unMount(component.subTree, parentComponent);
     } else if (shapeFlag & ShapeFlags.TELEPORT) {
       vnode.type.remove(vnode, unMountChildren);
     } else {
@@ -915,10 +996,10 @@ function createRenderer(rendererOptions2) {
       }
     }
   };
-  const unMountChildren = (children) => {
+  const unMountChildren = (children, parentComponent) => {
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
-      unMount(child);
+      unMount(child, parentComponent);
     }
   };
   const mountElement = (vnode, container, anchor, parentComponent) => {
@@ -997,6 +1078,16 @@ function createRenderer(rendererOptions2) {
       n2,
       parentComponent
     );
+    if (isKeepAlive(n2)) {
+      instance.ctx.renderer = {
+        createElement: hostCreateElement,
+        setElementText: hostSetElementText,
+        moveTo(vnode, container2, anchor2) {
+          hostInsert(vnode.component.subTree.el, container2);
+        },
+        unMount
+      };
+    }
     setupComponent(instance);
     setupRenderComponentEffect(instance, container, anchor);
   };
@@ -1032,7 +1123,7 @@ function createRenderer(rendererOptions2) {
   const updateComponentPreRender = (instance, next) => {
     instance.next = null;
     instance.vnode = next;
-    updateComponentProps(instance, instance.props, next.props);
+    updateComponentProps(instance, instance.props, next.props = {});
     Object.assign(instance.slots, next.children);
   };
   const shouldComponentUpdate = (n1, n2) => {
@@ -1067,7 +1158,7 @@ function createRenderer(rendererOptions2) {
       }
     }
   };
-  const patchKeyedChildren = (c1, c2, el) => {
+  const patchKeyedChildren = (c1, c2, el, parentComponent) => {
     let i = 0;
     const l1 = c1.length;
     const l2 = c2.length;
@@ -1106,7 +1197,7 @@ function createRenderer(rendererOptions2) {
     } else if (i > e2) {
       if (i <= e1) {
         while (i <= e1) {
-          unMount(c1[i].el);
+          unMount(c1[i].el, parentComponent);
           i++;
         }
       }
@@ -1124,7 +1215,7 @@ function createRenderer(rendererOptions2) {
         const oldPos = c1[i2];
         const nextPosIndex = keyToNewIndexMap.get(oldPos.key);
         if (nextPosIndex == void 0) {
-          unMount(oldPos);
+          unMount(oldPos, parentComponent);
         } else {
           newIndexToOldIndexMap[nextPosIndex - s2] = i2;
           patch(oldPos, c2[nextPosIndex], el);
@@ -1155,7 +1246,7 @@ function createRenderer(rendererOptions2) {
     const shapeFlag = n2.shapeFlag;
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-        unMountChildren(c1);
+        unMountChildren(c1, parentComponent);
       }
       if (c1 !== c2) {
         hostSetElementText(el, c2);
@@ -1163,9 +1254,9 @@ function createRenderer(rendererOptions2) {
     } else {
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-          patchKeyedChildren(c1, c2, el);
+          patchKeyedChildren(c1, c2, el, parentComponent);
         } else {
-          unMountChildren(c1);
+          unMountChildren(c1, parentComponent);
         }
       } else {
         if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
@@ -1210,7 +1301,11 @@ function createRenderer(rendererOptions2) {
   };
   const processComponent = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
-      mountComponent(n2, container, anchor, parentComponent);
+      if (n2.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE) {
+        parentComponent.ctx.active(n2, container, anchor);
+      } else {
+        mountComponent(n2, container, anchor, parentComponent);
+      }
     } else {
       updateComponent(n1, n2, container);
     }
@@ -1220,7 +1315,7 @@ function createRenderer(rendererOptions2) {
       return;
     }
     if (n1 && !isSameVnode(n1, n2)) {
-      unMount(n1);
+      unMount(n1, parentComponent);
       n1 = null;
     }
     const { type, shapeFlag } = n2;
@@ -1251,7 +1346,7 @@ function createRenderer(rendererOptions2) {
   };
   const render2 = (vnode, container) => {
     if (vnode === null) {
-      unMount(container._vnode);
+      unMount(container._vnode, null);
     } else {
       patch(container._vnode || null, vnode, container);
       container._vnode = vnode;
@@ -1309,20 +1404,7 @@ function inject(key, defaultValue) {
   }
 }
 
-// packages/runtime-core/src/KeepAlive.ts
-var KeepAlive = {
-  __isKeepAlive: true,
-  setup(props, { slots }) {
-    return (proxy) => {
-      const vnode = slots.default();
-      vnode.transition = props;
-      return vnode;
-    };
-  }
-};
-var isKeepAlive = (v) => v.__isKeepAlive;
-
-// packages/runtime-core/src/components/Transition.ts
+// packages/runtime-core/src/functionalComponent/Transition.ts
 function Transition(props, { slots }) {
   return h(baseTransitionImpl, resolveTransitionProps(props), slots);
 }

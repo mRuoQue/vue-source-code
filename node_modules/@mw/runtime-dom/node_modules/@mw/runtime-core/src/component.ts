@@ -21,6 +21,7 @@ export function createComponentInstance(vnode, parent) {
     exposed: null,
     parent, // 父组件
     provides: parent ? parent.provides : Object.create(null),
+    ctx: {} as any, // KeepAlive组件存储dom的缓存集合
   };
 
   return instance;

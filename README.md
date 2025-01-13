@@ -74,6 +74,14 @@
         
         - Transition : 内置组件，整合用户传入的props并调用用户逻辑函数，设置对应的className，注意再动画生效之后清除上一帧动画，requestAnnimationFrame函数，在当前vnode上添加transition对象，在元素挂载前后调用Transition钩子。在元素卸载后调用Transition钩子。
 
+        - KeepAlive : 内置组件，缓存当前子组件的ODM。h函数第二参数必须要有。
+          - 标识：__isKeepAlive
+          - 挂载组件时，在instance上添加ctx属性，加入内置方法moveTo(el,container,anchor)
+          - 通过key或者name缓存当前组件，vnode上添加标记，ctx上添加active、deactive方法
+          - 更新组件，命中，走内置的active方法，将旧的DOM直接移动到容器，切换组件，不走unMount卸载，走deactive，将el存储在 空的容器中复用。
+          - max缓存策略删除缓存，并重置vnode上的标记
+          - 组件初始化阶段，走内部的active方法
+          
         - lifecycle : 通过createHooks高阶函数创建，保存的当前组件实例，setup调用前后则组件实例创建销毁时刻，挂载前后应该在setupRenderComponentEffect中，初始化组件时，bm/m，更新组件时，bu/u执行,为了保持组件实例在钩子周期生效，在createHooks内部重置instance组件实例，hook调用完毕销毁
         
       - h : 创建虚拟节点

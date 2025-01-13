@@ -5,6 +5,7 @@ export function Transition(props, { slots }) {
   return h(baseTransitionImpl, resolveTransitionProps(props), slots);
 }
 
+// 整合用户传入的props，并调用用户逻辑，为组件添加对应的className
 const resolveTransitionProps = (props) => {
   const {
     name = "mw",
