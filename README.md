@@ -71,9 +71,10 @@
         - provide/inject : 暴露组件实例，获取父组件上的provide，并且在processElement、processComponent中增加parentComponent实例
 
         - Teleport : 内置组件，设置shapeFlag,在当前type上添加process方法，渲染使用，传入mountChildren、patchChildren、unMountChildren方法，供外部使用，并且实现moveTo（hostInsert）方法 用来移动当前的Teleport组件到指定位置
+        
+        - Transition : 内置组件，整合用户传入的props并调用用户逻辑函数，设置对应的className，注意再动画生效之后清除上一帧动画，requestAnnimationFrame函数，在当前vnode上添加transition对象，在元素挂载前后调用Transition钩子。在元素卸载后调用Transition钩子。
 
         - lifecycle : 通过createHooks高阶函数创建，保存的当前组件实例，setup调用前后则组件实例创建销毁时刻，挂载前后应该在setupRenderComponentEffect中，初始化组件时，bm/m，更新组件时，bu/u执行,为了保持组件实例在钩子周期生效，在createHooks内部重置instance组件实例，hook调用完毕销毁
-          - 
         
       - h : 创建虚拟节点
         - 多态判断通过createVnode(type, props, children)创建不同vnode
