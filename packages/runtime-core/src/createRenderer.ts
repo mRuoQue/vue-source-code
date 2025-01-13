@@ -46,7 +46,8 @@ export function createRenderer(rendererOptions) {
   };
 
   const unMount = (vnode) => {
-    const { type, shapeFlag, component } = vnode;
+    const { type, shapeFlag, component, transition, el } = vnode;
+    const handleRemove = () => hostRemove(vnode.el);
     if (type === Fragment) {
       unMountChildren(vnode.children);
     } else if (shapeFlag & ShapeFlags.COMPONENT) {
@@ -54,7 +55,11 @@ export function createRenderer(rendererOptions) {
     } else if (shapeFlag & ShapeFlags.TELEPORT) {
       vnode.type.remove(vnode, unMountChildren);
     } else {
-      hostRemove(vnode.el);
+      if (transition) {
+        transition.leave(el, handleRemove);
+      } else {
+        handleRemove();
+      }
     }
   };
 
@@ -65,7 +70,7 @@ export function createRenderer(rendererOptions) {
     }
   };
   const mountElement = (vnode, container, anchor, parentComponent) => {
-    const { type, props, children, shapeFlag } = vnode;
+    const { type, props, children, shapeFlag, transition } = vnode;
     // 创建dom元素
     const el = (vnode.el = hostCreateElement(type));
 
@@ -80,10 +85,25 @@ export function createRenderer(rendererOptions) {
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
       mountChildren(children, el, parentComponent);
     }
+
+    if (transition) {
+      transition.beforeEnter(el);
+    }
     // el插入到 container
     hostInsert(el, container, anchor);
+    if (transition) {
+      transition.enter(el);
+    }
   };
 
+  function renderComponent(instance) {
+    const { render, vnode, proxy, attrs, slots } = instance;
+    if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+      return render.call(proxy, proxy);
+    } else {
+      return vnode.type(attrs, { slots });
+    }
+  }
   // 创建effect更新 dom
   const setupRenderComponentEffect = (instance, container, anchor) => {
     const { render } = instance;
@@ -95,8 +115,9 @@ export function createRenderer(rendererOptions) {
           invokerhooks(bm);
         }
         // 组件的虚拟节点
-        const subTree = render.call(instance.proxy, instance.proxy);
-        patch(null, subTree, container, anchor, instance);
+        const subTree = renderComponent(instance);
+
+        patch(null, subTree, container, anchor);
         instance.subTree = subTree;
         instance.isMounted = true;
         // onMounted
@@ -115,7 +136,7 @@ export function createRenderer(rendererOptions) {
           invokerhooks(bu);
         }
 
-        const newSubTree = render.call(instance.proxy, instance.proxy);
+        const newSubTree = renderComponent(instance);
         // 更新组件状态，添加组件实例instance
         patch(instance.subTree, newSubTree, container, anchor, instance);
         instance.subTree = newSubTree;
@@ -186,6 +207,8 @@ export function createRenderer(rendererOptions) {
     instance.next = null;
     instance.vnode = next;
     updateComponentProps(instance, instance.props, next.props);
+    // 更新插槽
+    Object.assign(instance.slots, next.children);
   };
 
   // 组件是否要更新
@@ -201,7 +224,7 @@ export function createRenderer(rendererOptions) {
       return false;
     }
     // 更新props
-    return isChangeProps(preProps, nextProps);
+    return isChangeProps(preProps, nextProps || {});
   };
   const updateComponent = (n1, n2, container) => {
     const instance = (n2.component = n1.component);
@@ -473,6 +496,7 @@ export function createRenderer(rendererOptions) {
 
   // 调用runtime-dom中创建dom API ,创建元素渲染到 container
   const render = (vnode, container) => {
+    // debugger;
     // vnode=null,移除当前vnode，删除当前el
     if (vnode === null) {
       unMount(container._vnode);

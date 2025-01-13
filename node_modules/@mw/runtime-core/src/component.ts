@@ -28,8 +28,8 @@ export function createComponentInstance(vnode, parent) {
 
 export function setupComponent(instance) {
   const { vnode } = instance;
-  const vnodeProps = vnode.props;
-  initProps(instance, vnodeProps);
+  // const vnodeProps = vnode.props;
+  initProps(instance, vnode.props);
   initSlots(instance, vnode.children);
   // 映射属性到proxy上
   instance.proxy = new Proxy(instance, setHandlers);

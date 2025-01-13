@@ -7,5 +7,7 @@ export * from "./createVnode";
 export * from "./component";
 
 export * from "./provide";
-export * from "./Teleport";
+export * from "./components/Teleport";
 export * from "./Lifecycle";
+export * from "./KeepAlive";
+export * from "./components/Transition";
