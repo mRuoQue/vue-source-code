@@ -11,3 +11,4 @@ export * from "./Lifecycle";
 export * from "./functionalComponent/Teleport";
 export * from "./functionalComponent/KeepAlive";
 export * from "./functionalComponent/Transition";
+export * from "./functionalComponent/defineAsyncComponent";

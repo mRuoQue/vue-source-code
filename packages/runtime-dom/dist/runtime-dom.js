@@ -1503,6 +1503,77 @@ var baseTransitionImpl = {
   }
 };
 
+// packages/runtime-core/src/functionalComponent/defineAsyncComponent.ts
+function defineAsyncComponent(options) {
+  if (isFunction(options)) {
+    options = { loader: options };
+  }
+  return {
+    setup() {
+      let loaded = ref(false);
+      let errored = ref(false);
+      let errReason = ref("");
+      let loading = ref(false);
+      let loadingtimer = null;
+      let renderComponent = null;
+      let attempts = 0;
+      const {
+        loader,
+        errorComponent,
+        delay,
+        loadingComponent,
+        timeout,
+        onError
+      } = options;
+      if (loadingComponent) {
+        loadingtimer = setTimeout(() => {
+          loading.value = true;
+        }, delay);
+      }
+      if (timeout) {
+        setTimeout(() => {
+          errored.value = true;
+          errReason.value = "loading timeout ...";
+          throw new Error("\u7EC4\u4EF6\u52A0\u8F7D\u8D85\u65F6 ...");
+        }, timeout);
+      }
+      function handerLoader() {
+        return loader().catch((err) => {
+          if (onError) {
+            return new Promise((resolve, reject) => {
+              const retry = () => resolve(handerLoader());
+              const fail = () => reject(err);
+              onError(err, retry, fail, ++attempts);
+            });
+          } else {
+            throw err;
+          }
+        });
+      }
+      handerLoader().then((component) => {
+        renderComponent = component;
+        loaded.value = true;
+      }).catch((err) => {
+        errored.value = err;
+      }).finally(() => {
+        loading.value = false;
+        clearTimeout(loadingtimer);
+      });
+      return () => {
+        if (loaded.value) {
+          return h(renderComponent);
+        } else if (errored.value) {
+          return errorComponent ? h(errorComponent, { reason: errReason.value }) : h("div", errReason.value);
+        } else if (loading.value && loadingComponent) {
+          return h(loadingComponent);
+        } else {
+          return h("div");
+        }
+      };
+    }
+  };
+}
+
 // packages/runtime-dom/src/index.ts
 var rendererOptions = extend(nodeOptions, { patchProps });
 var render = function(vnode, container) {
@@ -1523,6 +1594,7 @@ export {
   createVnode,
   createWatch,
   currentInstance,
+  defineAsyncComponent,
   effect,
   getCurrentInstance,
   h,
