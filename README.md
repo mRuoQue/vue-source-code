@@ -83,6 +83,11 @@
           - 组件初始化阶段，走内部的active方法
           
         - lifecycle : 通过createHooks高阶函数创建，保存的当前组件实例，setup调用前后则组件实例创建销毁时刻，挂载前后应该在setupRenderComponentEffect中，初始化组件时，bm/m，更新组件时，bu/u执行,为了保持组件实例在钩子周期生效，在createHooks内部重置instance组件实例，hook调用完毕销毁
+
+        - definetAsyncComponent : 异步组件加载
+          - 接受一个promise加载函数或选项式对象，转换函数统一格式
+          - 支持超时、loading、error、delay、timeout、retry、onError等配置
+          - 重试机制，通过promise.catch链式调用，返回一个新的promise，递归重试
         
       - h : 创建虚拟节点
         - 多态判断通过createVnode(type, props, children)创建不同vnode
