@@ -201,6 +201,38 @@ var ShapeFlags = {
   "6": "COMPONENT"
 };
 
+// packages/shared/src/patchFlags.ts
+var PatchFlags = {
+  TEXT: 1,
+  "1": "TEXT",
+  CLASS: 2,
+  "2": "CLASS",
+  STYLE: 4,
+  "4": "STYLE",
+  PROPS: 8,
+  "8": "PROPS",
+  FULL_PROPS: 16,
+  "16": "FULL_PROPS",
+  NEED_HYDRATION: 32,
+  "32": "NEED_HYDRATION",
+  STABLE_FRAGMENT: 64,
+  "64": "STABLE_FRAGMENT",
+  KEYED_FRAGMENT: 128,
+  "128": "KEYED_FRAGMENT",
+  UNKEYED_FRAGMENT: 256,
+  "256": "UNKEYED_FRAGMENT",
+  NEED_PATCH: 512,
+  "512": "NEED_PATCH",
+  DYNAMIC_SLOTS: 1024,
+  "1024": "DYNAMIC_SLOTS",
+  DEV_ROOT_FRAGMENT: 2048,
+  "2048": "DEV_ROOT_FRAGMENT",
+  CACHED: -1,
+  "-1": "CACHED",
+  BAIL: -2,
+  "-2": "BAIL"
+};
+
 // packages/reactivity/src/effect.ts
 var activeEffect;
 function effect(fn, options) {
@@ -435,17 +467,17 @@ function toRefs(object) {
 }
 function proxyRefs(objectIsRef) {
   return new Proxy(objectIsRef, {
-    get(target, key, reactive2) {
-      const res = Reflect.get(target, key, reactive2);
+    get(target, key, reactive3) {
+      const res = Reflect.get(target, key, reactive3);
       return res.__v_isRef ? res.value : res;
     },
-    set(target, key, value, reactive2) {
+    set(target, key, value, reactive3) {
       const oldValue = target[key];
       if (oldValue.__v_isRef) {
         oldValue.value = value;
         return true;
       } else {
-        return Reflect.set(target, key, value, reactive2);
+        return Reflect.set(target, key, value, reactive3);
       }
     }
   });
@@ -813,7 +845,7 @@ var Teleport = {
 var isTeleport = (v) => v.__isTeleport;
 
 // packages/runtime-core/src/createVnode.ts
-function createVnode(type, props, children) {
+function createVnode(type, props, children, patchFlag) {
   const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isTeleport(type) ? ShapeFlags.TELEPORT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : isFunction(type) ? ShapeFlags.FUNCTIONAL_COMPONENT : 0;
   const vnode = {
     __v_isVnode: true,
@@ -823,8 +855,12 @@ function createVnode(type, props, children) {
     props,
     // 传入的props
     children,
-    shapeFlag
+    shapeFlag,
+    patchFlag
   };
+  if (currentBlock && patchFlag) {
+    currentBlock.push(vnode);
+  }
   if (children) {
     if (isArray2(children)) {
       vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
@@ -836,6 +872,24 @@ function createVnode(type, props, children) {
     }
   }
   return vnode;
+}
+var currentBlock = null;
+function toDisplayString(v) {
+  return isString(v) ? v : v === null ? "" : isObject(v) ? JSON.stringify(v) : String(v);
+}
+function openBlock() {
+  currentBlock = [];
+}
+function closeBlock() {
+  currentBlock = null;
+}
+function setupBlock(vnode) {
+  vnode.dynamicChildren = currentBlock;
+  closeBlock();
+  return vnode;
+}
+function createElementBlock(type, props, children, patchFlag) {
+  return setupBlock(createVnode(type, props, children, patchFlag));
 }
 
 // packages/runtime-core/src/Lifecycle.ts
@@ -969,10 +1023,10 @@ function createRenderer(rendererOptions2) {
     nextSbiling: hostnNxtSbiling,
     patchProps: hostPatchProps
   } = rendererOptions2;
-  const mountChildren = (children, container, parentComponent) => {
+  const mountChildren = (children, container, anchor, parentComponent) => {
     dealWithChildrenIsString(children);
     for (let i = 0; i < children.length; i++) {
-      patch(null, children[i], container, parentComponent);
+      patch(null, children[i], container, anchor, parentComponent);
     }
   };
   const unMount = (vnode, parentComponent) => {
@@ -1014,7 +1068,7 @@ function createRenderer(rendererOptions2) {
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       hostSetElementText(el, children);
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-      mountChildren(children, el, parentComponent);
+      mountChildren(children, el, anchor, parentComponent);
     }
     if (transition) {
       transition.beforeEnter(el);
@@ -1239,7 +1293,7 @@ function createRenderer(rendererOptions2) {
       }
     }
   };
-  const patchChildren = (n1, n2, el, parentComponent) => {
+  const patchChildren = (n1, n2, el, anchor, parentComponent) => {
     const c1 = n1.children;
     const c2 = isArray2(n2.children) ? dealWithChildrenIsString(n2.children) : n2.children;
     const prevShapeFlag = n1.shapeFlag;
@@ -1263,23 +1317,48 @@ function createRenderer(rendererOptions2) {
           hostSetElementText(el, "");
         }
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-          mountChildren(c2, el, parentComponent);
+          mountChildren(c2, el, anchor, parentComponent);
         }
       }
     }
   };
-  const patchElement = (n1, n2, container, parentComponent) => {
+  const patchBlockChildren = (n1, n2, el, anchor, parentComponent) => {
+    const { dynamicChildren } = n2;
+    for (let i = 0; i < dynamicChildren.length; i++) {
+      patch(
+        n1.dynamicChildren[i],
+        dynamicChildren[i],
+        el,
+        anchor,
+        parentComponent
+      );
+    }
+  };
+  const patchElement = (n1, n2, container, anchor, parentComponent) => {
     const el = n2.el = n1.el;
     const oldProps = n1.props || {};
     const newProps = n2.props || {};
-    patchProps2(oldProps, newProps, el);
-    patchChildren(n1, n2, el, parentComponent);
+    const { dynamicChildren, patchFlag } = n2;
+    if (patchFlag) {
+      if (patchFlag & PatchFlags.TEXT) {
+        if (n1.children !== n2.children) {
+          return hostSetElementText(el, n2.children);
+        }
+      }
+    } else {
+      patchProps2(oldProps, newProps, el);
+    }
+    if (dynamicChildren) {
+      patchBlockChildren(n1, n2, el, anchor, parentComponent);
+    } else {
+      patchChildren(n1, n2, el, anchor, parentComponent);
+    }
   };
   const processElement = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
       mountElement(n2, container, anchor, parentComponent);
     } else {
-      patchElement(n1, n2, container, parentComponent);
+      patchElement(n1, n2, container, anchor, parentComponent);
     }
   };
   const processText = (n1, n2, container) => {
@@ -1294,9 +1373,9 @@ function createRenderer(rendererOptions2) {
   };
   const processFragment = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
-      mountChildren(n2.children, container, parentComponent);
+      mountChildren(n2.children, container, anchor, parentComponent);
     } else {
-      patchChildren(n1, n2, container, parentComponent);
+      patchChildren(n1, n2, container, anchor, parentComponent);
     }
   };
   const processComponent = (n1, n2, container, anchor, parentComponent) => {
@@ -1588,8 +1667,11 @@ export {
   Text,
   Transition,
   activeEffect,
+  closeBlock,
   computed,
   createComponentInstance,
+  createElementBlock,
+  createVnode as createElementVNode,
   createRenderer,
   createVnode,
   createWatch,
@@ -1610,13 +1692,16 @@ export {
   onMounted,
   onUnmounted,
   onUpdated,
+  openBlock,
   provide,
   proxyRefs,
   reactive,
   ref,
   render,
   setCurrentInstance,
+  setupBlock,
   setupComponent,
+  toDisplayString,
   toReactive,
   toRef,
   toRefs,

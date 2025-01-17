@@ -3,7 +3,7 @@ import { extend } from "@vue/shared";
 import { nodeOptions } from "./nodeOptions";
 import { patchProps } from "./patchProps";
 
-import { createRenderer } from "@mw/runtime-core";
+import { createRenderer, reactive } from "@mw/runtime-core";
 // domAPI
 const rendererOptions = extend(nodeOptions, { patchProps });
 

@@ -3,6 +3,7 @@ import {
   isNumber,
   isSameVnode,
   isString,
+  PatchFlags,
   ShapeFlags,
 } from "@mw/shared";
 import longIncSequeue from "./longIncSequeue";
@@ -39,10 +40,10 @@ export function createRenderer(rendererOptions) {
     patchProps: hostPatchProps,
   } = rendererOptions;
 
-  const mountChildren = (children, container, parentComponent) => {
+  const mountChildren = (children, container, anchor, parentComponent) => {
     dealWithChildrenIsString(children);
     for (let i = 0; i < children.length; i++) {
-      patch(null, children[i], container, parentComponent);
+      patch(null, children[i], container, anchor, parentComponent);
     }
   };
 
@@ -89,7 +90,7 @@ export function createRenderer(rendererOptions) {
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       hostSetElementText(el, children);
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-      mountChildren(children, el, parentComponent);
+      mountChildren(children, el, anchor, parentComponent);
     }
 
     if (transition) {
@@ -389,7 +390,7 @@ export function createRenderer(rendererOptions) {
    * 6. 旧数组，新数组，diff
    *
    */
-  const patchChildren = (n1, n2, el, parentComponent) => {
+  const patchChildren = (n1, n2, el, anchor, parentComponent) => {
     const c1 = n1.children;
     // 兼容一下传入字符串问题
     const c2 = isArray(n2.children)
@@ -419,18 +420,47 @@ export function createRenderer(rendererOptions) {
           hostSetElementText(el, "");
         }
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-          mountChildren(c2, el, parentComponent);
+          mountChildren(c2, el, anchor, parentComponent);
         }
       }
     }
   };
+  const patchBlockChildren = (n1, n2, el, anchor, parentComponent) => {
+    const { dynamicChildren } = n2;
+
+    for (let i = 0; i < dynamicChildren.length; i++) {
+      patch(
+        n1.dynamicChildren[i],
+        dynamicChildren[i],
+        el,
+        anchor,
+        parentComponent
+      );
+    }
+  };
   // 差异化更新 el复用
-  const patchElement = (n1, n2, container, parentComponent) => {
+  const patchElement = (n1, n2, container, anchor, parentComponent) => {
     const el = (n2.el = n1.el);
     const oldProps = n1.props || {};
     const newProps = n2.props || {};
-    patchProps(oldProps, newProps, el);
-    patchChildren(n1, n2, el, parentComponent);
+    const { dynamicChildren, patchFlag } = n2;
+    // dynamic
+    if (patchFlag) {
+      if (patchFlag & PatchFlags.TEXT) {
+        if (n1.children !== n2.children) {
+          return hostSetElementText(el, n2.children);
+        }
+      }
+    } else {
+      patchProps(oldProps, newProps, el);
+    }
+
+    if (dynamicChildren) {
+      patchBlockChildren(n1, n2, el, anchor, parentComponent);
+    } else {
+      // full diff
+      patchChildren(n1, n2, el, anchor, parentComponent);
+    }
   };
 
   const processElement = (n1, n2, container, anchor, parentComponent) => {
@@ -439,7 +469,7 @@ export function createRenderer(rendererOptions) {
       mountElement(n2, container, anchor, parentComponent);
     } else {
       // 类型相同复用 差异化更新
-      patchElement(n1, n2, container, parentComponent);
+      patchElement(n1, n2, container, anchor, parentComponent);
     }
   };
 
@@ -458,10 +488,10 @@ export function createRenderer(rendererOptions) {
   const processFragment = (n1, n2, container, anchor, parentComponent) => {
     if (n1 === null) {
       // 创建
-      mountChildren(n2.children, container, parentComponent);
+      mountChildren(n2.children, container, anchor, parentComponent);
     } else {
       // 更新
-      patchChildren(n1, n2, container, parentComponent);
+      patchChildren(n1, n2, container, anchor, parentComponent);
     }
   };
   const processComponent = (n1, n2, container, anchor, parentComponent) => {

@@ -41,6 +41,8 @@
       Text,
       Fragment,
       ref,
+      toRefs,
+      reactive,
       Teleport,
       provide,
       inject,
@@ -52,6 +54,10 @@
       KeepAlive,
       Transition,
       defineAsyncComponent,
+      toDisplayString as _toDisplayString,
+      createElementVNode as _createElementVNode,
+      createElementBlock as _createElementBlock,
+      openBlock as _openBlock,
     } from "./runtime-dom.js";
 
     const domApp = document.querySelector("#app");
@@ -73,41 +79,71 @@
       },
     };
     let count = 0;
-    const asyncCom = defineAsyncComponent({
-      loader() {
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            if (count++ > 3) {
-              resolve({
-                render() {
-                  return h("div", "load success");
-                },
-              });
-            } else {
-              reject({
-                render() {
-                  return h("div", "load fail");
-                },
-              });
-            }
-          }, 3000);
-        });
-      },
-      loadingComponent: loadingComponent,
-      errorComponent: errorComponent,
-      timeout: 1000,
-      delay: 500,
-      onError(error, retry, fail, attempts) {
-        console.log(attempts);
+
+    const patchFlagComponent = {
+      setup() {
+        const state = reactive({ name: "mw222" });
 
         setTimeout(() => {
-          retry();
-          console.log("重新加载中...");
-        }, 1000);
-      },
-    });
+          state.name = "my heart";
+        }, 2000);
 
-    render(h(asyncCom), domApp);
+        return {
+          ...toRefs(state),
+        };
+      },
+      render(_ctx) {
+        const vnode =
+          (_openBlock(),
+          _createElementBlock("div", null, [
+            _createElementVNode("h1", null, "hello world"),
+            _createElementVNode(
+              "span",
+              null,
+              _toDisplayString(_ctx.name),
+              1 /* TEXT */
+            ),
+          ]));
+
+        return vnode;
+      },
+    };
+
+    // const asyncCom = defineAsyncComponent({
+    //   loader() {
+    //     return new Promise((resolve, reject) => {
+    //       setTimeout(() => {
+    //         if (count++ > 3) {
+    //           resolve({
+    //             render() {
+    //               return h("div", "load success");
+    //             },
+    //           });
+    //         } else {
+    //           reject({
+    //             render() {
+    //               return h("div", "load fail");
+    //             },
+    //           });
+    //         }
+    //       }, 3000);
+    //     });
+    //   },
+    //   loadingComponent: loadingComponent,
+    //   errorComponent: errorComponent,
+    //   timeout: 1000,
+    //   delay: 500,
+    //   onError(error, retry, fail, attempts) {
+    //     console.log(attempts);
+
+    //     setTimeout(() => {
+    //       retry();
+    //       console.log("重新加载中...");
+    //     }, 1000);
+    //   },
+    // });
+
+    render(h(patchFlagComponent), domApp);
 
     // const mwComponent = {
     //   setup(props, { attrs, emit, expose, slots }) {
