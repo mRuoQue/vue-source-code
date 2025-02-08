@@ -1,5 +1,11 @@
 import { NodeTypes } from "./ast";
-import { regTag, regSpaces, regAttr, regSpaceEqual } from "@mw/shared";
+import {
+  regTag,
+  regSpaces,
+  regAttr,
+  regSpaceEqual,
+  regSpaceChar,
+} from "@mw/shared";
 
 function parse(template) {
   const context = createParserContext(template);
@@ -45,7 +51,19 @@ function parseChildren(context) {
     }
     nodes.push(node);
   }
-  return nodes;
+  // 去除空节点
+
+  for (let i = 0; i < nodes.length; i++) {
+    let node = nodes[i];
+    if (node.type === NodeTypes.TEXT) {
+      if (!regSpaceChar.test(node.content)) {
+        nodes[i] = null;
+      } else {
+        node.content = node.content.replace(/^[ \t\r\n]+/g, " ");
+      }
+    }
+  }
+  return nodes.filter((node) => !!node);
 }
 
 // 解析元素

@@ -12,6 +12,15 @@
     import { parse } from "./compiler-core.js";
     let name = 1;
 
-    console.log(parse(`<div a = "1" b = '2' c = 3>{{ name }}</div>`));
+    console.log(
+      parse(`<div a = "1" b = '2' c = 3>
+      
+      {{ name }}
+
+      <div></div>
+       
+      
+      </div>`)
+    );
   </script>
 </html>

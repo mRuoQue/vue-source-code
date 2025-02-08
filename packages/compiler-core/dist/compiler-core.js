@@ -61,6 +61,7 @@ var regSpaces = /^[ \t\r\n]+/;
 var regTag = /^<\/?([a-z][^ \t\r\n/>]*)/;
 var regAttr = /^[^\t\r\n\f />][^\t\r\n\f />=]*/;
 var regSpaceEqual = /^[\t\r\n\f ]*=/;
+var regSpaceChar = /[^\t\r\n\f ]/;
 
 // packages/compiler-core/src/index.ts
 function parse(template) {
@@ -103,7 +104,17 @@ function parseChildren(context) {
     }
     nodes.push(node);
   }
-  return nodes;
+  for (let i = 0; i < nodes.length; i++) {
+    let node = nodes[i];
+    if (node.type === NodeTypes.TEXT) {
+      if (!regSpaceChar.test(node.content)) {
+        nodes[i] = null;
+      } else {
+        node.content = node.content.replace(/^[ \t\r\n]+/g, " ");
+      }
+    }
+  }
+  return nodes.filter((node) => !!node);
 }
 function parseElement(context) {
   const ele = parseTag(context);
