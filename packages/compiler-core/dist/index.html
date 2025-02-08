@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>compiler-core</title>
+  </head>
+  <body></body>
+  <script type="module">
+    // import { compiler } from "/node_modules/@vue/compiler-core/dist/compiler-dom.esm.browser.js";
+
+    import { parse } from "./compiler-core.js";
+    let name = 1;
+
+    console.log(parse(`<div a = "1" b = '2' c = 3>{{ name }}</div>`));
+  </script>
+</html>
