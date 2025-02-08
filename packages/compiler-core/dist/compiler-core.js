@@ -110,7 +110,7 @@ function parseChildren(context) {
       if (!regSpaceChar.test(node.content)) {
         nodes[i] = null;
       } else {
-        node.content = node.content.replace(/^[ \t\r\n]+/g, " ");
+        node.content = node.content.replace(/[ \t\r\n]+/g, " ");
       }
     }
   }
