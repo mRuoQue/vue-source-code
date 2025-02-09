@@ -56,6 +56,38 @@ var NodeTypes = {
   "26": "JS_RETURN_STATEMENT"
 };
 
+// packages/shared/src/patchFlags.ts
+var PatchFlags = {
+  TEXT: 1,
+  "1": "TEXT",
+  CLASS: 2,
+  "2": "CLASS",
+  STYLE: 4,
+  "4": "STYLE",
+  PROPS: 8,
+  "8": "PROPS",
+  FULL_PROPS: 16,
+  "16": "FULL_PROPS",
+  NEED_HYDRATION: 32,
+  "32": "NEED_HYDRATION",
+  STABLE_FRAGMENT: 64,
+  "64": "STABLE_FRAGMENT",
+  KEYED_FRAGMENT: 128,
+  "128": "KEYED_FRAGMENT",
+  UNKEYED_FRAGMENT: 256,
+  "256": "UNKEYED_FRAGMENT",
+  NEED_PATCH: 512,
+  "512": "NEED_PATCH",
+  DYNAMIC_SLOTS: 1024,
+  "1024": "DYNAMIC_SLOTS",
+  DEV_ROOT_FRAGMENT: 2048,
+  "2048": "DEV_ROOT_FRAGMENT",
+  CACHED: -1,
+  "-1": "CACHED",
+  BAIL: -2,
+  "-2": "BAIL"
+};
+
 // packages/shared/src/regexp.ts
 var regSpaces = /^[ \t\r\n]+/;
 var regTag = /^<\/?([a-z][^ \t\r\n/>]*)/;
@@ -63,7 +95,7 @@ var regAttr = /^[^\t\r\n\f />][^\t\r\n\f />=]*/;
 var regSpaceEqual = /^[\t\r\n\f ]*=/;
 var regSpaceChar = /[^\t\r\n\f ]/;
 
-// packages/compiler-core/src/index.ts
+// packages/compiler-core/src/parse.ts
 function parse(template) {
   const context = createParserContext(template);
   return createRoot(parseChildren(context));
@@ -124,7 +156,6 @@ function parseElement(context) {
   }
   ele.children = children;
   ele.loc = getSelection(context, ele.loc.start);
-  console.log(ele);
   return ele;
 }
 function parseTag(context) {
@@ -275,7 +306,159 @@ function getCursor(context) {
   let { line, column, offset } = context;
   return { line, column, offset };
 }
+
+// packages/compiler-core/src/runtimeHelper.ts
+var TO_DISPLAY_STRING = Symbol("TO_DISPLAY_STRING");
+var CREATE_ELEMENT_VNODE = Symbol("CREATE_ELEMENT_VNODE");
+var CREATE_TEXT_VNODE = Symbol("CREATE_TEXT_VNODE");
+var CREATE_COMMENT = Symbol("CREATE_COMMENT");
+var CREATE_COMMENT_VNODE = Symbol("CREATE_COMMENT_VNODE");
+var CREATE_FRAGMENT = Symbol("CREATE_FRAGMENT");
+var helperMapName = {
+  [TO_DISPLAY_STRING]: "toDisplayString",
+  [CREATE_ELEMENT_VNODE]: "createElementVNode",
+  [CREATE_TEXT_VNODE]: "createTextVNode",
+  [CREATE_COMMENT]: "createCommentVNode",
+  [CREATE_COMMENT_VNODE]: "createCommentVNode",
+  [CREATE_FRAGMENT]: "createFragment"
+};
+function createCallExpression(context, args = []) {
+  context.helpers.set(CREATE_TEXT_VNODE);
+  return {
+    type: NodeTypes.JS_CALL_EXPRESSION,
+    callee: helperMapName[CREATE_TEXT_VNODE],
+    arguments: args
+  };
+}
+
+// packages/compiler-core/src/compile.ts
+function compile(template) {
+  const ast = parse(template);
+  transform(ast);
+}
+function transform(ast) {
+  const context = createTransformContext(ast);
+  traverseNode(ast, context);
+  ast.helpers = [...context.helpers.keys()];
+}
+function traverseNode(node, context) {
+  context.currentNode = node;
+  let exits = [];
+  const transforms = context.transformNode;
+  for (let i = 0; i < transforms.length; i++) {
+    const transfrom = transforms[i];
+    let exit = transfrom(node, context);
+    exit && exits.push(exit);
+  }
+  switch (node.type) {
+    case NodeTypes.ROOT:
+    // traverseChildren(node, context);
+    // break;
+    case NodeTypes.ELEMENT:
+      for (let i = 0; i < node.children.length; i++) {
+        context.parent = node;
+        traverseNode(node.children[i], context);
+      }
+      break;
+    // case NodeTypes.TEXT:
+    //   // traverseChildren(node, context);
+    //   break;
+    case NodeTypes.INTERPOLATION:
+      context.helper(TO_DISPLAY_STRING);
+      break;
+  }
+  context.currentNode = node;
+  let tail = exits.length;
+  if (tail > 0) {
+    while (tail--) {
+      exits[tail]();
+    }
+  }
+}
+function createTransformContext(root) {
+  const context = {
+    root,
+    currentNode: root,
+    parent: null,
+    helpers: /* @__PURE__ */ new Map(),
+    transformNode: [transformElement, transformText, transformExpression],
+    helper(key) {
+      let num = context.helpers.get(key) || 0;
+      context.helpers.set(key, num + 1);
+      return num;
+    }
+  };
+  return context;
+}
+function transformElement(node, context) {
+  if (NodeTypes.ELEMENT === node.type) {
+    console.log(node, "\u5904\u7406\u5143\u7D20");
+  }
+  return function() {
+  };
+}
+function transformText(node, context) {
+  if (NodeTypes.ELEMENT === node.type || NodeTypes.ROOT === node.type) {
+    console.log(node, "\u5143\u7D20\u4E2D\u7684\u6587\u672C");
+    return function() {
+      let hasText = false;
+      let container = null;
+      const children = node.children;
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        if (isText(child)) {
+          hasText = true;
+          for (let j = i + 1; j < children.length; j++) {
+            const next = children[j];
+            if (isText(next)) {
+              if (!container) {
+                container = children[i] = {
+                  type: NodeTypes.COMPOUND_EXPRESSION,
+                  children: [child]
+                };
+              }
+              container.children.push(" + ", child);
+              children.splice(j, 1);
+              j--;
+            } else {
+              container = null;
+              break;
+            }
+          }
+        }
+      }
+      if (!hasText || children.length === 1) {
+        return;
+      }
+      for (let i = 0; i < children.length; i++) {
+        let args = [];
+        const child = children[i];
+        if (isText(child) || child.type === NodeTypes.COMPOUND_EXPRESSION) {
+          args.push(child);
+          if (child.type !== NodeTypes.TEXT) {
+            args.push(PatchFlags.TEXT);
+          }
+        }
+        children[i] = {
+          type: NodeTypes.TEXT_CALL,
+          content: child,
+          codegenNode: createCallExpression(context, args)
+        };
+      }
+    };
+  }
+}
+function isText(node) {
+  return node.type === NodeTypes.TEXT || node.type === NodeTypes.INTERPOLATION;
+}
+function transformExpression(node, context) {
+  if (NodeTypes.INTERPOLATION === node.type) {
+    console.log(node, "\u5904\u7406\u8868\u8FBE\u5F0F");
+    node.content.content = `_ctx.${node.content.content}`;
+  }
+}
 export {
+  compile,
   parse
 };
 //# sourceMappingURL=compiler-core.js.map
