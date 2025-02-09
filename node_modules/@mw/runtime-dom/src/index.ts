@@ -13,3 +13,4 @@ export const render = function (vnode, container) {
 };
 
 export * from "@mw/runtime-core";
+export * from "@mw/compiler-core";

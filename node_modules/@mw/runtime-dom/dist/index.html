@@ -58,6 +58,7 @@
       createElementVNode as _createElementVNode,
       createElementBlock as _createElementBlock,
       openBlock as _openBlock,
+      compile,
     } from "./runtime-dom.js";
 
     const domApp = document.querySelector("#app");
@@ -143,7 +144,9 @@
     //   },
     // });
 
-    render(h(patchFlagComponent), domApp);
+    const domCompiler = new Function(compile(`<div>123</div>`));
+    console.log(domCompiler());
+    render(h(domCompiler), domApp);
 
     // const mwComponent = {
     //   setup(props, { attrs, emit, expose, slots }) {

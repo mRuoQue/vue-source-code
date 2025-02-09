@@ -13,6 +13,7 @@
     ]
   },
   "dependencies": {
+    "@mw/compiler-core": "workspace:^",
     "@mw/runtime-core": "workspace:*",
     "@mw/shared": "workspace:*"
   }

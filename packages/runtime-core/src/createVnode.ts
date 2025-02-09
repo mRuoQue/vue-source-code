@@ -15,7 +15,7 @@ import { isTeleport } from "./functionalComponent/Teleport";
  * @param {} patchFlag 比较动态节点
  * @returns
  */
-export function createVnode(type, props, children, patchFlag?) {
+export function createVnode(type, props, children?, patchFlag?) {
   const shapeFlag = isString(type)
     ? ShapeFlags.ELEMENT
     : isTeleport(type)

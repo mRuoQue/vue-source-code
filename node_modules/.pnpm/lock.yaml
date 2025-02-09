@@ -22,6 +22,12 @@ importers:
         specifier: ^5.7.2
         version: 5.7.2
 
+  packages/compiler-core:
+    dependencies:
+      '@mw/shared':
+        specifier: workspace:*
+        version: link:../shared
+
   packages/reactivity:
     dependencies:
       '@mw/shared':
@@ -36,6 +42,9 @@ importers:
 
   packages/runtime-dom:
     dependencies:
+      '@mw/compiler-core':
+        specifier: workspace:^
+        version: link:../compiler-core
       '@mw/runtime-core':
         specifier: workspace:*
         version: link:../runtime-core
