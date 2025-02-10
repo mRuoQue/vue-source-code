@@ -33,59 +33,59 @@ function isSameVnode(n1, n2) {
 // packages/shared/src/shapeFlags.ts
 var ShapeFlags = {
   ELEMENT: 1,
-  "1": "ELEMENT",
+  1: "ELEMENT",
   FUNCTIONAL_COMPONENT: 2,
-  "2": "FUNCTIONAL_COMPONENT",
+  2: "FUNCTIONAL_COMPONENT",
   STATEFUL_COMPONENT: 4,
-  "4": "STATEFUL_COMPONENT",
+  4: "STATEFUL_COMPONENT",
   TEXT_CHILDREN: 8,
-  "8": "TEXT_CHILDREN",
+  8: "TEXT_CHILDREN",
   ARRAY_CHILDREN: 16,
-  "16": "ARRAY_CHILDREN",
+  16: "ARRAY_CHILDREN",
   SLOTS_CHILDREN: 32,
-  "32": "SLOTS_CHILDREN",
+  32: "SLOTS_CHILDREN",
   TELEPORT: 64,
-  "64": "TELEPORT",
+  64: "TELEPORT",
   SUSPENSE: 128,
-  "128": "SUSPENSE",
+  128: "SUSPENSE",
   COMPONENT_SHOULD_KEEP_ALIVE: 256,
-  "256": "COMPONENT_SHOULD_KEEP_ALIVE",
+  256: "COMPONENT_SHOULD_KEEP_ALIVE",
   COMPONENT_KEPT_ALIVE: 512,
-  "512": "COMPONENT_KEPT_ALIVE",
+  512: "COMPONENT_KEPT_ALIVE",
   COMPONENT: 6,
-  "6": "COMPONENT"
+  6: "COMPONENT",
 };
 
 // packages/shared/src/patchFlags.ts
 var PatchFlags = {
   TEXT: 1,
-  "1": "TEXT",
+  1: "TEXT",
   CLASS: 2,
-  "2": "CLASS",
+  2: "CLASS",
   STYLE: 4,
-  "4": "STYLE",
+  4: "STYLE",
   PROPS: 8,
-  "8": "PROPS",
+  8: "PROPS",
   FULL_PROPS: 16,
-  "16": "FULL_PROPS",
+  16: "FULL_PROPS",
   NEED_HYDRATION: 32,
-  "32": "NEED_HYDRATION",
+  32: "NEED_HYDRATION",
   STABLE_FRAGMENT: 64,
-  "64": "STABLE_FRAGMENT",
+  64: "STABLE_FRAGMENT",
   KEYED_FRAGMENT: 128,
-  "128": "KEYED_FRAGMENT",
+  128: "KEYED_FRAGMENT",
   UNKEYED_FRAGMENT: 256,
-  "256": "UNKEYED_FRAGMENT",
+  256: "UNKEYED_FRAGMENT",
   NEED_PATCH: 512,
-  "512": "NEED_PATCH",
+  512: "NEED_PATCH",
   DYNAMIC_SLOTS: 1024,
-  "1024": "DYNAMIC_SLOTS",
+  1024: "DYNAMIC_SLOTS",
   DEV_ROOT_FRAGMENT: 2048,
-  "2048": "DEV_ROOT_FRAGMENT",
+  2048: "DEV_ROOT_FRAGMENT",
   CACHED: -1,
   "-1": "CACHED",
   BAIL: -2,
-  "-2": "BAIL"
+  "-2": "BAIL",
 };
 
 // packages/shared/src/regexp.ts
@@ -124,8 +124,7 @@ var nodeOptions = {
   nextSbiling(node) {
     return node.nextSibling;
   },
-  patchProp(el, key, oldValue, newValue) {
-  }
+  patchProp(el, key, oldValue, newValue) {},
 };
 
 // packages/runtime-dom/src/modules/patchAttr.ts
@@ -143,7 +142,7 @@ function patchEvent(el, eventType, handler) {
   const eventName = eventType.slice(2).toLowerCase();
   const existingInvoker = invokers[eventType];
   if (handler && existingInvoker) {
-    return existingInvoker.value = handler;
+    return (existingInvoker.value = handler);
   }
   if (handler) {
     const invoker = createInvoker(handler);
@@ -314,11 +313,11 @@ function track(target, key) {
   if (activeEffect) {
     let depMap = targetMap.get(target);
     if (!depMap) {
-      targetMap.set(target, depMap = /* @__PURE__ */ new Map());
+      targetMap.set(target, (depMap = /* @__PURE__ */ new Map()));
     }
     let dep = depMap.get(key);
     if (!dep) {
-      depMap.set(key, dep = createDep(() => depMap.delete(key), key));
+      depMap.set(key, (dep = createDep(() => depMap.delete(key), key)));
     }
     trackEffect(activeEffect, dep);
   }
@@ -360,7 +359,7 @@ var baseHandlers = {
       trigger(target, key, value, oldValue);
     }
     return res;
-  }
+  },
 };
 
 // packages/reactivity/src/reactive.ts
@@ -414,7 +413,7 @@ function trackRefValue(ref2) {
   if (activeEffect) {
     trackEffect(
       activeEffect,
-      ref2.dep = ref2.dep || createDep(() => ref2.dep = void 0, "undefined")
+      (ref2.dep = ref2.dep || createDep(() => (ref2.dep = void 0), "undefined"))
     );
   }
 }
@@ -447,7 +446,7 @@ function proxyRefs(objectIsRef) {
       } else {
         return Reflect.set(target, key, value, reactive3);
       }
-    }
+    },
   });
 }
 var ObjectRefImpl = class {
@@ -524,7 +523,12 @@ function createWatch(source, cb, { deep, immediate }) {
   };
   return unWatch;
 }
-function traverse(source, deep, currentDeep = 0, seen = /* @__PURE__ */ new Set()) {
+function traverse(
+  source,
+  deep,
+  currentDeep = 0,
+  seen = /* @__PURE__ */ new Set()
+) {
   if (!isObject(source)) {
     return source;
   }
@@ -602,7 +606,7 @@ function longIncSequeue(arr) {
     start = 0;
     end = result.length - 1;
     while (start < end) {
-      middle = (start + end) / 2 | 0;
+      middle = ((start + end) / 2) | 0;
       if (cur > arr[result[middle]]) {
         start = middle + 1;
       } else {
@@ -670,7 +674,7 @@ function createComponentInstance(vnode, parent) {
     parent,
     // 父组件
     provides: parent ? parent.provides : /* @__PURE__ */ Object.create(null),
-    ctx: {}
+    ctx: {},
     // KeepAlive组件存储dom的缓存集合
   };
   return instance;
@@ -680,13 +684,12 @@ function setupComponent(instance) {
   initProps(instance, vnode.props);
   initSlots(instance, vnode.children);
   instance.proxy = new Proxy(instance, setHandlers);
-  const { data = () => {
-  }, render: render2, setup } = vnode.type;
+  const { data = () => {}, render: render2, setup } = vnode.type;
   const context = {
     attrs: instance.attrs,
     slots: instance.slots,
     emit: (event, ...args) => initEmit(instance, event, ...args),
-    expose: (v) => instance.exposed = v
+    expose: (v) => (instance.exposed = v),
   };
   if (setup) {
     setCurrentInstance(instance);
@@ -709,7 +712,7 @@ function setupComponent(instance) {
 }
 var publicPrototype = {
   $attrs: (instance) => instance.attrs,
-  $slots: (instance) => instance.slots
+  $slots: (instance) => instance.slots,
   // $emit: (instance) => instance.emit,
   // $expose: (instance) => instance.expose,
   // $setup: (instance) => instance.setupState,
@@ -742,7 +745,7 @@ var setHandlers = {
       setupState[key] = value;
     }
     return true;
-  }
+  },
 };
 var initProps = (instance, vnodeProps) => {
   let props = {};
@@ -789,7 +792,7 @@ var Teleport = {
   process(n1, n2, container, anchor, parentComponent, internals) {
     let { mountChildren, patchChildren, moveTo } = internals;
     if (!n1) {
-      const target = n2.target = document.querySelector(n2.props.to);
+      const target = (n2.target = document.querySelector(n2.props.to));
       if (target) {
         mountChildren(n2.children, target, anchor, parentComponent);
       }
@@ -808,13 +811,21 @@ var Teleport = {
     if (shapeFlag & ShapeFlags.TELEPORT) {
       unMountChildren(children);
     }
-  }
+  },
 };
 var isTeleport = (v) => v.__isTeleport;
 
 // packages/runtime-core/src/createVnode.ts
 function createVnode(type, props, children, patchFlag) {
-  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isTeleport(type) ? ShapeFlags.TELEPORT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : isFunction(type) ? ShapeFlags.FUNCTIONAL_COMPONENT : 0;
+  const shapeFlag = isString(type)
+    ? ShapeFlags.ELEMENT
+    : isTeleport(type)
+    ? ShapeFlags.TELEPORT
+    : isObject(type)
+    ? ShapeFlags.STATEFUL_COMPONENT
+    : isFunction(type)
+    ? ShapeFlags.FUNCTIONAL_COMPONENT
+    : 0;
   const vnode = {
     __v_isVnode: true,
     el: null,
@@ -824,7 +835,7 @@ function createVnode(type, props, children, patchFlag) {
     // 传入的props
     children,
     shapeFlag,
-    patchFlag
+    patchFlag,
   };
   if (currentBlock && patchFlag) {
     currentBlock.push(vnode);
@@ -843,7 +854,13 @@ function createVnode(type, props, children, patchFlag) {
 }
 var currentBlock = null;
 function toDisplayString(v) {
-  return isString(v) ? v : v === null ? "" : isObject(v) ? JSON.stringify(v) : String(v);
+  return isString(v)
+    ? v
+    : v === null
+    ? ""
+    : isObject(v)
+    ? JSON.stringify(v)
+    : String(v);
 }
 function openBlock() {
   currentBlock = [];
@@ -904,8 +921,8 @@ var KeepAlive = {
   props: {
     max: {
       type: Number,
-      default: 5
-    }
+      default: 5,
+    },
   },
   __isKeepAlive: true,
   setup(props, { slots }) {
@@ -970,7 +987,7 @@ var KeepAlive = {
       vnode.shapeFlag |= ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE;
       return vnode;
     };
-  }
+  },
 };
 var isKeepAlive = (v) => v.type.__isKeepAlive;
 
@@ -985,7 +1002,7 @@ function createAppAPI(render2) {
         const vnode = createVnode(rootComponent, rootProps);
         render2(vnode, container);
         app._container = container;
-      }
+      },
     };
     return app;
   };
@@ -1012,7 +1029,7 @@ function createRenderer(rendererOptions2) {
     setText: hostSetText,
     parentNode: hostParentNode,
     nextSbiling: hostnNxtSbiling,
-    patchProps: hostPatchProps
+    patchProps: hostPatchProps,
   } = rendererOptions2;
   const mountChildren = (children, container, anchor, parentComponent) => {
     dealWithChildrenIsString(children);
@@ -1049,7 +1066,7 @@ function createRenderer(rendererOptions2) {
   };
   const mountElement = (vnode, container, anchor, parentComponent) => {
     const { type, props, children, shapeFlag, transition } = vnode;
-    const el = vnode.el = hostCreateElement(type);
+    const el = (vnode.el = hostCreateElement(type));
     if (props) {
       for (const key in props) {
         const val = props[key];
@@ -1108,9 +1125,8 @@ function createRenderer(rendererOptions2) {
         }
       }
     };
-    const _effect = new ReactiveEffect(
-      componentUpdateFn,
-      () => queueJob(update)
+    const _effect = new ReactiveEffect(componentUpdateFn, () =>
+      queueJob(update)
     );
     const update = () => {
       _effect.run();
@@ -1119,10 +1135,10 @@ function createRenderer(rendererOptions2) {
     update();
   };
   const mountComponent = (n2, container, anchor, parentComponent) => {
-    const instance = n2.component = createComponentInstance(
+    const instance = (n2.component = createComponentInstance(
       n2,
       parentComponent
-    );
+    ));
     if (isKeepAlive(n2)) {
       instance.ctx.renderer = {
         createElement: hostCreateElement,
@@ -1130,7 +1146,7 @@ function createRenderer(rendererOptions2) {
         moveTo(vnode, container2, anchor2) {
           hostInsert(vnode.component.subTree.el, container2);
         },
-        unMount
+        unMount,
       };
     }
     setupComponent(instance);
@@ -1168,7 +1184,7 @@ function createRenderer(rendererOptions2) {
   const updateComponentPreRender = (instance, next) => {
     instance.next = null;
     instance.vnode = next;
-    updateComponentProps(instance, instance.props, next.props = {});
+    updateComponentProps(instance, instance.props, (next.props = {}));
     Object.assign(instance.slots, next.children);
   };
   const shouldComponentUpdate = (n1, n2) => {
@@ -1183,7 +1199,7 @@ function createRenderer(rendererOptions2) {
     return isChangeProps(preProps, nextProps || {});
   };
   const updateComponent = (n1, n2, container) => {
-    const instance = n2.component = n1.component;
+    const instance = (n2.component = n1.component);
     if (shouldComponentUpdate(n1, n2)) {
       instance.next = n2;
       instance.update();
@@ -1286,7 +1302,9 @@ function createRenderer(rendererOptions2) {
   };
   const patchChildren = (n1, n2, el, anchor, parentComponent) => {
     const c1 = n1.children;
-    const c2 = isArray(n2.children) ? dealWithChildrenIsString(n2.children) : n2.children;
+    const c2 = isArray(n2.children)
+      ? dealWithChildrenIsString(n2.children)
+      : n2.children;
     const prevShapeFlag = n1.shapeFlag;
     const shapeFlag = n2.shapeFlag;
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
@@ -1326,7 +1344,7 @@ function createRenderer(rendererOptions2) {
     }
   };
   const patchElement = (n1, n2, container, anchor, parentComponent) => {
-    const el = n2.el = n1.el;
+    const el = (n2.el = n1.el);
     const oldProps = n1.props || {};
     const newProps = n2.props || {};
     const { dynamicChildren, patchFlag } = n2;
@@ -1354,9 +1372,9 @@ function createRenderer(rendererOptions2) {
   };
   const processText = (n1, n2, container) => {
     if (n1 === null) {
-      hostInsert(n2.el = hostCreateText(n2.children), container);
+      hostInsert((n2.el = hostCreateText(n2.children)), container);
     } else {
-      const el = n2.el = n1.el;
+      const el = (n2.el = n1.el);
       if (n1.children !== n2.children) {
         hostSetText(el, n2.children);
       }
@@ -1404,9 +1422,11 @@ function createRenderer(rendererOptions2) {
             mountChildren,
             patchChildren,
             moveTo(vnode, container2, anchor2) {
-              const el = vnode.component ? vnode.component.subTree.el : vnode.el;
+              const el = vnode.component
+                ? vnode.component.subTree.el
+                : vnode.el;
               hostInsert(el, container2, anchor2);
-            }
+            },
           };
           type.process(n1, n2, container, anchor, parentComponent, renderFn);
         } else if (shapeFlag & ShapeFlags.COMPONENT) {
@@ -1490,7 +1510,7 @@ var resolveTransitionProps = (props) => {
     onBeforeEnter,
     onEnter,
     onLeave,
-    appear = false
+    appear = false,
   } = props;
   return {
     onBeforeEnter(el) {
@@ -1531,7 +1551,7 @@ var resolveTransitionProps = (props) => {
           el.addEventListener("transitionend", resolve);
         }
       });
-    }
+    },
   };
 };
 function nextFrame(fn) {
@@ -1552,7 +1572,7 @@ var baseTransitionImpl = {
     onLeaveCancelled: Function,
     onBeforeAppear: Function,
     onAppear: Function,
-    onAfterAppear: Function
+    onAfterAppear: Function,
   },
   setup(props, { slots }) {
     return () => {
@@ -1566,11 +1586,11 @@ var baseTransitionImpl = {
         activeEnter: props.onActiveEnter,
         afterEnter: props.onAfterEnter,
         beforeLeave: props.onBeforeLeave,
-        leave: props.onLeave
+        leave: props.onLeave,
       };
       return vnode;
     };
-  }
+  },
 };
 
 // packages/runtime-core/src/functionalComponent/defineAsyncComponent.ts
@@ -1593,7 +1613,7 @@ function defineAsyncComponent(options) {
         delay,
         loadingComponent,
         timeout,
-        onError
+        onError,
       } = options;
       if (loadingComponent) {
         loadingtimer = setTimeout(() => {
@@ -1620,27 +1640,32 @@ function defineAsyncComponent(options) {
           }
         });
       }
-      handerLoader().then((component) => {
-        renderComponent = component;
-        loaded.value = true;
-      }).catch((err) => {
-        errored.value = err;
-      }).finally(() => {
-        loading.value = false;
-        clearTimeout(loadingtimer);
-      });
+      handerLoader()
+        .then((component) => {
+          renderComponent = component;
+          loaded.value = true;
+        })
+        .catch((err) => {
+          errored.value = err;
+        })
+        .finally(() => {
+          loading.value = false;
+          clearTimeout(loadingtimer);
+        });
       return () => {
         if (loaded.value) {
           return h(renderComponent);
         } else if (errored.value) {
-          return errorComponent ? h(errorComponent, { reason: errReason.value }) : h("div", errReason.value);
+          return errorComponent
+            ? h(errorComponent, { reason: errReason.value })
+            : h("div", errReason.value);
         } else if (loading.value && loadingComponent) {
           return h(loadingComponent);
         } else {
           return h("div");
         }
       };
-    }
+    },
   };
 }
 
@@ -1661,72 +1686,72 @@ var helperMapName = {
   [CREATE_COMMENT_VNODE]: "createCommentVNode",
   [Fragment2]: "Fragment",
   [OPEN_BLOCK]: "openBlock",
-  [CREATE_ELEMENT_BLOCK]: "createElementBlock"
+  [CREATE_ELEMENT_BLOCK]: "createElementBlock",
 };
 
 // packages/compiler-core/src/ast.ts
 var NodeTypes = {
   ROOT: 0,
-  "0": "ROOT",
+  0: "ROOT",
   ELEMENT: 1,
-  "1": "ELEMENT",
+  1: "ELEMENT",
   TEXT: 2,
-  "2": "TEXT",
+  2: "TEXT",
   COMMENT: 3,
-  "3": "COMMENT",
+  3: "COMMENT",
   SIMPLE_EXPRESSION: 4,
-  "4": "SIMPLE_EXPRESSION",
+  4: "SIMPLE_EXPRESSION",
   INTERPOLATION: 5,
-  "5": "INTERPOLATION",
+  5: "INTERPOLATION",
   ATTRIBUTE: 6,
-  "6": "ATTRIBUTE",
+  6: "ATTRIBUTE",
   DIRECTIVE: 7,
-  "7": "DIRECTIVE",
+  7: "DIRECTIVE",
   COMPOUND_EXPRESSION: 8,
-  "8": "COMPOUND_EXPRESSION",
+  8: "COMPOUND_EXPRESSION",
   IF: 9,
-  "9": "IF",
+  9: "IF",
   IF_BRANCH: 10,
-  "10": "IF_BRANCH",
+  10: "IF_BRANCH",
   FOR: 11,
-  "11": "FOR",
+  11: "FOR",
   TEXT_CALL: 12,
-  "12": "TEXT_CALL",
+  12: "TEXT_CALL",
   VNODE_CALL: 13,
-  "13": "VNODE_CALL",
+  13: "VNODE_CALL",
   JS_CALL_EXPRESSION: 14,
-  "14": "JS_CALL_EXPRESSION",
+  14: "JS_CALL_EXPRESSION",
   JS_OBJECT_EXPRESSION: 15,
-  "15": "JS_OBJECT_EXPRESSION",
+  15: "JS_OBJECT_EXPRESSION",
   JS_PROPERTY: 16,
-  "16": "JS_PROPERTY",
+  16: "JS_PROPERTY",
   JS_ARRAY_EXPRESSION: 17,
-  "17": "JS_ARRAY_EXPRESSION",
+  17: "JS_ARRAY_EXPRESSION",
   JS_FUNCTION_EXPRESSION: 18,
-  "18": "JS_FUNCTION_EXPRESSION",
+  18: "JS_FUNCTION_EXPRESSION",
   JS_CONDITIONAL_EXPRESSION: 19,
-  "19": "JS_CONDITIONAL_EXPRESSION",
+  19: "JS_CONDITIONAL_EXPRESSION",
   JS_CACHE_EXPRESSION: 20,
-  "20": "JS_CACHE_EXPRESSION",
+  20: "JS_CACHE_EXPRESSION",
   JS_BLOCK_STATEMENT: 21,
-  "21": "JS_BLOCK_STATEMENT",
+  21: "JS_BLOCK_STATEMENT",
   JS_TEMPLATE_LITERAL: 22,
-  "22": "JS_TEMPLATE_LITERAL",
+  22: "JS_TEMPLATE_LITERAL",
   JS_IF_STATEMENT: 23,
-  "23": "JS_IF_STATEMENT",
+  23: "JS_IF_STATEMENT",
   JS_ASSIGNMENT_EXPRESSION: 24,
-  "24": "JS_ASSIGNMENT_EXPRESSION",
+  24: "JS_ASSIGNMENT_EXPRESSION",
   JS_SEQUENCE_EXPRESSION: 25,
-  "25": "JS_SEQUENCE_EXPRESSION",
+  25: "JS_SEQUENCE_EXPRESSION",
   JS_RETURN_STATEMENT: 26,
-  "26": "JS_RETURN_STATEMENT"
+  26: "JS_RETURN_STATEMENT",
 };
 function createCallExpression(context, args = []) {
   context.helpers.set(CREATE_TEXT_VNODE);
   return {
     type: NodeTypes.JS_CALL_EXPRESSION,
     callee: helperMapName[CREATE_TEXT_VNODE],
-    arguments: args
+    arguments: args,
   };
 }
 function createVnodeCall(context, tag, props, children) {
@@ -1739,13 +1764,13 @@ function createVnodeCall(context, tag, props, children) {
     callee: key,
     tag,
     props,
-    children
+    children,
   };
 }
 function createObjExpression(context, args = []) {
   return {
     type: NodeTypes.JS_OBJECT_EXPRESSION,
-    properties: args
+    properties: args,
   };
 }
 
@@ -1757,7 +1782,7 @@ function parse(template) {
 function createRoot(children) {
   return {
     type: NodeTypes.ROOT,
-    children
+    children,
   };
 }
 function createParserContext(content) {
@@ -1766,7 +1791,7 @@ function createParserContext(content) {
     source: content,
     line: 1,
     column: 1,
-    offset: 0
+    offset: 0,
   };
 }
 function isEnd(context) {
@@ -1826,7 +1851,7 @@ function parseTag(context) {
     tag,
     props,
     isSelfClosing,
-    loc: getSelection(context, start)
+    loc: getSelection(context, start),
   };
 }
 function parseAttrs(context) {
@@ -1873,9 +1898,9 @@ function parseAttr(context) {
     value: {
       type: NodeTypes.TEXT,
       content: value,
-      loc: valueLoc
+      loc: valueLoc,
     },
-    loc: getSelection(context, start)
+    loc: getSelection(context, start),
   };
 }
 function parseExpression(context) {
@@ -1899,9 +1924,9 @@ function parseExpression(context) {
     content: {
       type: NodeTypes.SIMPLE_EXPRESSION,
       content,
-      loc: getSelection(context, innerStart, innerEnd)
+      loc: getSelection(context, innerStart, innerEnd),
     },
-    loc: getSelection(context, start)
+    loc: getSelection(context, start),
   };
 }
 function parseText(context) {
@@ -1916,7 +1941,7 @@ function parseText(context) {
   const content = parseTextData(context, endIndex);
   return {
     type: NodeTypes.TEXT,
-    content
+    content,
   };
 }
 function parseTextData(context, endIndex) {
@@ -1945,7 +1970,8 @@ function advancePositionWithMutation(context, source, endIndex) {
     }
   }
   context.line += linesCount;
-  context.column = linePos === -1 ? context.column + endIndex : endIndex - linePos;
+  context.column =
+    linePos === -1 ? context.column + endIndex : endIndex - linePos;
   context.offset += endIndex;
 }
 function getSelection(context, start, nextEnd) {
@@ -1953,7 +1979,7 @@ function getSelection(context, start, nextEnd) {
   return {
     start,
     end,
-    source: context.originalSource.slice(start.offset, end.offset)
+    source: context.originalSource.slice(start.offset, end.offset),
   };
 }
 function getCursor(context) {
@@ -2046,13 +2072,13 @@ function createTransformContext(root) {
       } else {
         context.helpers.delete(key);
       }
-    }
+    },
   };
   return context;
 }
 function transformElement(node, context) {
   if (NodeTypes.ELEMENT === node.type) {
-    return function() {
+    return function () {
       const { tag, props, children } = node;
       const vnodeTag = tag;
       let properties = [];
@@ -2060,7 +2086,8 @@ function transformElement(node, context) {
         const prop = props[i];
         properties.push({ key: prop.name, value: prop.value.content });
       }
-      const propsExpression = properties.length > 0 ? createObjExpression(context) : null;
+      const propsExpression =
+        properties.length > 0 ? createObjExpression(context) : null;
       let vnodeChildren = null;
       if (children.length === 1) {
         vnodeChildren = children[0];
@@ -2078,7 +2105,7 @@ function transformElement(node, context) {
 }
 function transformText(node, context) {
   if (NodeTypes.ELEMENT === node.type || NodeTypes.ROOT === node.type) {
-    return function() {
+    return function () {
       let hasText = false;
       let container = null;
       const children = node.children;
@@ -2092,7 +2119,7 @@ function transformText(node, context) {
               if (!container) {
                 container = children[i] = {
                   type: NodeTypes.COMPOUND_EXPRESSION,
-                  children: [child]
+                  children: [child],
                 };
               }
               container.children.push(" + ", child);
@@ -2120,7 +2147,7 @@ function transformText(node, context) {
         children[i] = {
           type: NodeTypes.TEXT_CALL,
           content: child,
-          codegenNode: createCallExpression(context, args)
+          codegenNode: createCallExpression(context, args),
         };
       }
     };
@@ -2188,7 +2215,9 @@ function genVnodeCall(node, context) {
   if (isBlock) {
     push(`(${helper(OPEN_BLOCK)}(),`);
   }
-  const help = isBlock ? helper(CREATE_ELEMENT_BLOCK) : helper(CREATE_ELEMENT_VNODE);
+  const help = isBlock
+    ? helper(CREATE_ELEMENT_BLOCK)
+    : helper(CREATE_ELEMENT_VNODE);
   push(`${help}(`);
   push(`"div",`);
   push(`null,`);
@@ -2243,7 +2272,7 @@ function createCodegenContext(ast) {
     },
     newLine() {
       newLine(context.level);
-    }
+    },
   };
   function newLine(l) {
     context.push(`
@@ -2254,7 +2283,7 @@ ${"  ".repeat(l)}`);
 
 // packages/runtime-dom/src/index.ts
 var rendererOptions = extend(nodeOptions, { patchProps });
-var render = function(vnode, container) {
+var render = function (vnode, container) {
   return createRenderer(rendererOptions).render(vnode, container);
 };
 export {
@@ -2314,6 +2343,6 @@ export {
   triggerRefValue,
   unsetCurrentInstance,
   watch,
-  watchEffect
+  watchEffect,
 };
 //# sourceMappingURL=runtime-dom.js.map

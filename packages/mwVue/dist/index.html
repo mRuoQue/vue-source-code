@@ -4,24 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
+    <script src="./mwvue.js"></script>
   </head>
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    const { createApp, h, compile } = Mwvue;
 
-  <script type="module">
-    import { reactive, h, createApp } from "./mwvue.js";
+    const compileDom = compile(`<div>123</div>`);
+
+    const fn = new Function(compileDom);
+    console.log(fn());
 
     const domApp = document.getElementById("app");
     const com = {
       setup() {
-        return () => {
-          return h("div", "loading...");
-        };
+        return {};
       },
+      render: fn(),
     };
 
     const app = createApp(com);
+
     app.mount(domApp);
   </script>
-  <body>
-    <div id="app"></div>
-  </body>
 </html>

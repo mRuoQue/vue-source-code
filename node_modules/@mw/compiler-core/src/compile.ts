@@ -22,10 +22,13 @@ function generate(ast) {
   const context = createCodegenContext(ast);
   const { push, indent, deindent, newLine } = context;
 
+  push(`const _Mwvue = Mwvue`);
+
   genFunction(ast, context);
 
   const fnName = "render";
   const args = ["_ctx", "_cache", "$props"];
+  push(`return `);
   push(`function ${fnName}(${args.join(",")}){`);
 
   indent();
@@ -108,6 +111,7 @@ function genInterpolation(node, context) {
 }
 function genFunction(ast, context) {
   const { push, indent, deindent, newLine, helper } = context;
+  newLine();
 
   push(`console.log(333)`);
 
@@ -115,15 +119,15 @@ function genFunction(ast, context) {
 
   if (ast.helpers.length > 0) {
     push(
-      `import {${ast.helpers.map(
-        (key) => `${helperMapName[key]} as ${helper(key)}`
-      )}} from "@mw/runtime-core"`
+      `const {${ast.helpers.map(
+        (key) => `${helperMapName[key]}:${helper(key)}`
+      )}} = _Mwvue`
     );
     newLine();
   }
 
   // deindent();
-  push(`export `);
+  // push(`export `);
 }
 
 function createCodegenContext(ast) {
