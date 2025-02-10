@@ -13,6 +13,7 @@ import { createComponentInstance, setupComponent } from "./component";
 import { createVnode } from "./createVnode";
 import { invokerhooks } from "./Lifecycle";
 import { isKeepAlive } from "./functionalComponent/KeepAlive";
+import { createAppAPI } from "./apiCreateApp";
 
 // 定义元素类型
 export const Text = Symbol("Text");
@@ -560,5 +561,5 @@ export function createRenderer(rendererOptions) {
     }
   };
 
-  return { render };
+  return { render, createApp: createAppAPI(render) };
 }

@@ -71,6 +71,10 @@ export function openBlock() {
   currentBlock = [];
 }
 
+export function _openBlock() {
+  currentBlock = [];
+}
+
 export function closeBlock() {
   currentBlock = null;
 }
@@ -82,6 +86,10 @@ export function setupBlock(vnode) {
 }
 
 export function createElementBlock(type, props, children, patchFlag?) {
+  return setupBlock(createVnode(type, props, children, patchFlag));
+}
+
+export function _createElementBlock(type, props, children, patchFlag?) {
   return setupBlock(createVnode(type, props, children, patchFlag));
 }
 export { createVnode as createElementVNode };

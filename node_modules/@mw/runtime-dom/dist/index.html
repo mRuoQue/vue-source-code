@@ -144,9 +144,23 @@
     //   },
     // });
 
-    const domCompiler = new Function(compile(`<div>123</div>`));
-    console.log(domCompiler());
-    render(h(domCompiler), domApp);
+    const code = compile("<div>123</div>");
+
+    const compilerCom = {
+      setup() {
+        const state = reactive({ name: "mw222" });
+
+        setTimeout(() => {
+          state.name = "my heart";
+        }, 2000);
+
+        return {
+          ...toRefs(state),
+        };
+      },
+      // render: renderer,
+    };
+    // render(h(compilerCom), domApp);
 
     // const mwComponent = {
     //   setup(props, { attrs, emit, expose, slots }) {

@@ -1,44 +1,99 @@
-// node_modules/.pnpm/@vue+shared@3.5.13/node_modules/@vue/shared/dist/shared.esm-bundler.js
-// @__NO_SIDE_EFFECTS__
-function makeMap(str) {
-  const map = /* @__PURE__ */ Object.create(null);
-  for (const key of str.split(",")) map[key] = 1;
-  return (val) => val in map;
+// packages/shared/src/utils.ts
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+function isObject(value) {
+  return value !== null && typeof value === "object";
 }
-var EMPTY_OBJ = true ? Object.freeze({}) : {};
-var EMPTY_ARR = true ? Object.freeze([]) : [];
-var extend = Object.assign;
-var isArray = Array.isArray;
-var cacheStringFunction = (fn) => {
-  const cache = /* @__PURE__ */ Object.create(null);
-  return (str) => {
-    const hit = cache[str];
-    return hit || (cache[str] = fn(str));
-  };
+function isFunction(value) {
+  return typeof value === "function";
+}
+function isString(value) {
+  return typeof value === "string";
+}
+function isNumber(value) {
+  return typeof value === "number";
+}
+function isArray(value) {
+  return Array.isArray(value);
+}
+function extend(a, b) {
+  return Object.assign(a, b);
+}
+function hasOwn(value, key) {
+  return hasOwnProperty.call(value, key);
+}
+
+// packages/shared/src/vnode.ts
+function isVnode(value) {
+  return value?.__v_isVnode;
+}
+function isSameVnode(n1, n2) {
+  return n1.type === n2.type && n1.key === n2.key;
+}
+
+// packages/shared/src/shapeFlags.ts
+var ShapeFlags = {
+  ELEMENT: 1,
+  "1": "ELEMENT",
+  FUNCTIONAL_COMPONENT: 2,
+  "2": "FUNCTIONAL_COMPONENT",
+  STATEFUL_COMPONENT: 4,
+  "4": "STATEFUL_COMPONENT",
+  TEXT_CHILDREN: 8,
+  "8": "TEXT_CHILDREN",
+  ARRAY_CHILDREN: 16,
+  "16": "ARRAY_CHILDREN",
+  SLOTS_CHILDREN: 32,
+  "32": "SLOTS_CHILDREN",
+  TELEPORT: 64,
+  "64": "TELEPORT",
+  SUSPENSE: 128,
+  "128": "SUSPENSE",
+  COMPONENT_SHOULD_KEEP_ALIVE: 256,
+  "256": "COMPONENT_SHOULD_KEEP_ALIVE",
+  COMPONENT_KEPT_ALIVE: 512,
+  "512": "COMPONENT_KEPT_ALIVE",
+  COMPONENT: 6,
+  "6": "COMPONENT"
 };
-var camelizeRE = /-(\w)/g;
-var camelize = cacheStringFunction(
-  (str) => {
-    return str.replace(camelizeRE, (_, c) => c ? c.toUpperCase() : "");
-  }
-);
-var hyphenateRE = /\B([A-Z])/g;
-var hyphenate = cacheStringFunction(
-  (str) => str.replace(hyphenateRE, "-$1").toLowerCase()
-);
-var capitalize = cacheStringFunction((str) => {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-});
-var toHandlerKey = cacheStringFunction(
-  (str) => {
-    const s = str ? `on${capitalize(str)}` : ``;
-    return s;
-  }
-);
-var specialBooleanAttrs = `itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly`;
-var isBooleanAttr = /* @__PURE__ */ makeMap(
-  specialBooleanAttrs + `,async,autofocus,autoplay,controls,default,defer,disabled,hidden,inert,loop,open,required,reversed,scoped,seamless,checked,muted,multiple,selected`
-);
+
+// packages/shared/src/patchFlags.ts
+var PatchFlags = {
+  TEXT: 1,
+  "1": "TEXT",
+  CLASS: 2,
+  "2": "CLASS",
+  STYLE: 4,
+  "4": "STYLE",
+  PROPS: 8,
+  "8": "PROPS",
+  FULL_PROPS: 16,
+  "16": "FULL_PROPS",
+  NEED_HYDRATION: 32,
+  "32": "NEED_HYDRATION",
+  STABLE_FRAGMENT: 64,
+  "64": "STABLE_FRAGMENT",
+  KEYED_FRAGMENT: 128,
+  "128": "KEYED_FRAGMENT",
+  UNKEYED_FRAGMENT: 256,
+  "256": "UNKEYED_FRAGMENT",
+  NEED_PATCH: 512,
+  "512": "NEED_PATCH",
+  DYNAMIC_SLOTS: 1024,
+  "1024": "DYNAMIC_SLOTS",
+  DEV_ROOT_FRAGMENT: 2048,
+  "2048": "DEV_ROOT_FRAGMENT",
+  CACHED: -1,
+  "-1": "CACHED",
+  BAIL: -2,
+  "-2": "BAIL"
+};
+
+// packages/shared/src/regexp.ts
+var regSpaces = /^[ \t\r\n]+/;
+var regTag = /^<\/?([a-z][^ \t\r\n/>]*)/;
+var regAttr = /^[^\t\r\n\f />][^\t\r\n\f />=]*/;
+var regSpaceEqual = /^[\t\r\n\f ]*=/;
+var regSpaceChar = /[^\t\r\n\f ]/;
 
 // packages/runtime-dom/src/nodeOptions.ts
 var nodeOptions = {
@@ -145,100 +200,6 @@ var patchProps = (el, prop, preVal, nextVal) => {
     return patchAttr(el, prop, nextVal);
   }
 };
-
-// packages/shared/src/utils.ts
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-function isObject(value) {
-  return value !== null && typeof value === "object";
-}
-function isFunction(value) {
-  return typeof value === "function";
-}
-function isString(value) {
-  return typeof value === "string";
-}
-function isNumber(value) {
-  return typeof value === "number";
-}
-function isArray2(value) {
-  return Array.isArray(value);
-}
-function hasOwn(value, key) {
-  return hasOwnProperty.call(value, key);
-}
-
-// packages/shared/src/vnode.ts
-function isVnode(value) {
-  return value?.__v_isVnode;
-}
-function isSameVnode(n1, n2) {
-  return n1.type === n2.type && n1.key === n2.key;
-}
-
-// packages/shared/src/shapeFlags.ts
-var ShapeFlags = {
-  ELEMENT: 1,
-  "1": "ELEMENT",
-  FUNCTIONAL_COMPONENT: 2,
-  "2": "FUNCTIONAL_COMPONENT",
-  STATEFUL_COMPONENT: 4,
-  "4": "STATEFUL_COMPONENT",
-  TEXT_CHILDREN: 8,
-  "8": "TEXT_CHILDREN",
-  ARRAY_CHILDREN: 16,
-  "16": "ARRAY_CHILDREN",
-  SLOTS_CHILDREN: 32,
-  "32": "SLOTS_CHILDREN",
-  TELEPORT: 64,
-  "64": "TELEPORT",
-  SUSPENSE: 128,
-  "128": "SUSPENSE",
-  COMPONENT_SHOULD_KEEP_ALIVE: 256,
-  "256": "COMPONENT_SHOULD_KEEP_ALIVE",
-  COMPONENT_KEPT_ALIVE: 512,
-  "512": "COMPONENT_KEPT_ALIVE",
-  COMPONENT: 6,
-  "6": "COMPONENT"
-};
-
-// packages/shared/src/patchFlags.ts
-var PatchFlags = {
-  TEXT: 1,
-  "1": "TEXT",
-  CLASS: 2,
-  "2": "CLASS",
-  STYLE: 4,
-  "4": "STYLE",
-  PROPS: 8,
-  "8": "PROPS",
-  FULL_PROPS: 16,
-  "16": "FULL_PROPS",
-  NEED_HYDRATION: 32,
-  "32": "NEED_HYDRATION",
-  STABLE_FRAGMENT: 64,
-  "64": "STABLE_FRAGMENT",
-  KEYED_FRAGMENT: 128,
-  "128": "KEYED_FRAGMENT",
-  UNKEYED_FRAGMENT: 256,
-  "256": "UNKEYED_FRAGMENT",
-  NEED_PATCH: 512,
-  "512": "NEED_PATCH",
-  DYNAMIC_SLOTS: 1024,
-  "1024": "DYNAMIC_SLOTS",
-  DEV_ROOT_FRAGMENT: 2048,
-  "2048": "DEV_ROOT_FRAGMENT",
-  CACHED: -1,
-  "-1": "CACHED",
-  BAIL: -2,
-  "-2": "BAIL"
-};
-
-// packages/shared/src/regexp.ts
-var regSpaces = /^[ \t\r\n]+/;
-var regTag = /^<\/?([a-z][^ \t\r\n/>]*)/;
-var regAttr = /^[^\t\r\n\f />][^\t\r\n\f />=]*/;
-var regSpaceEqual = /^[\t\r\n\f ]*=/;
-var regSpaceChar = /[^\t\r\n\f ]/;
 
 // packages/reactivity/src/effect.ts
 var activeEffect;
@@ -869,7 +830,7 @@ function createVnode(type, props, children, patchFlag) {
     currentBlock.push(vnode);
   }
   if (children) {
-    if (isArray2(children)) {
+    if (isArray(children)) {
       vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
     } else if (isObject(children)) {
       vnode.shapeFlag |= ShapeFlags.SLOTS_CHILDREN;
@@ -887,6 +848,9 @@ function toDisplayString(v) {
 function openBlock() {
   currentBlock = [];
 }
+function _openBlock() {
+  currentBlock = [];
+}
 function closeBlock() {
   currentBlock = null;
 }
@@ -896,6 +860,9 @@ function setupBlock(vnode) {
   return vnode;
 }
 function createElementBlock(type, props, children, patchFlag) {
+  return setupBlock(createVnode(type, props, children, patchFlag));
+}
+function _createElementBlock(type, props, children, patchFlag) {
   return setupBlock(createVnode(type, props, children, patchFlag));
 }
 
@@ -1006,6 +973,23 @@ var KeepAlive = {
   }
 };
 var isKeepAlive = (v) => v.type.__isKeepAlive;
+
+// packages/runtime-core/src/apiCreateApp.ts
+function createAppAPI(render2) {
+  return function createApp(rootComponent, rootProps = null) {
+    const app = {
+      _component: rootComponent,
+      _props: rootProps,
+      _container: null,
+      mount(container) {
+        const vnode = createVnode(rootComponent, rootProps);
+        render2(vnode, container);
+        app._container = container;
+      }
+    };
+    return app;
+  };
+}
 
 // packages/runtime-core/src/createRenderer.ts
 var Text = Symbol("Text");
@@ -1302,7 +1286,7 @@ function createRenderer(rendererOptions2) {
   };
   const patchChildren = (n1, n2, el, anchor, parentComponent) => {
     const c1 = n1.children;
-    const c2 = isArray2(n2.children) ? dealWithChildrenIsString(n2.children) : n2.children;
+    const c2 = isArray(n2.children) ? dealWithChildrenIsString(n2.children) : n2.children;
     const prevShapeFlag = n1.shapeFlag;
     const shapeFlag = n2.shapeFlag;
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
@@ -1438,14 +1422,14 @@ function createRenderer(rendererOptions2) {
       container._vnode = vnode;
     }
   };
-  return { render: render2 };
+  return { render: render2, createApp: createAppAPI(render2) };
 }
 
 // packages/runtime-core/src/h.ts
 function h(type, props, children) {
   const argLen = arguments.length;
   if (argLen === 2) {
-    if (isObject(props) && !isArray2(props)) {
+    if (isObject(props) && !isArray(props)) {
       if (isVnode(props)) {
         return createVnode(type, null, [props]);
       } else {
@@ -2161,6 +2145,9 @@ function generate(ast) {
   const context = createCodegenContext(ast);
   const { push, indent, deindent, newLine } = context;
   genFunction(ast, context);
+  const fnName = "render";
+  const args = ["_ctx", "_cache", "$props"];
+  push(`function ${fnName}(${args.join(",")}){`);
   indent();
   push(`return `);
   if (ast.codegenNode) {
@@ -2186,6 +2173,7 @@ function genNode(node, context) {
       break;
     case NodeTypes.SIMPLE_EXPRESSION:
       genExpression(node, context);
+      break;
     case NodeTypes.VNODE_CALL:
       genVnodeCall(node, context);
       break;
@@ -2204,7 +2192,7 @@ function genVnodeCall(node, context) {
   push(`${help}(`);
   push(`"div",`);
   push(`null,`);
-  push(`123,`);
+  push(`123`);
   if (isBlock) {
     push(`)`);
   }
@@ -2220,16 +2208,18 @@ function genInterpolation(node, context) {
   push(`)`);
 }
 function genFunction(ast, context) {
-  const { push, indent, deindent, newLine } = context;
+  const { push, indent, deindent, newLine, helper } = context;
+  push(`console.log(333)`);
+  newLine();
   if (ast.helpers.length > 0) {
     push(
-      `const {${ast.helpers.map(
-        (key) => `${helperMapName[key]}:${context.helper(key)}`
-      )}} = "./runtime-dom.js"`
+      `import {${ast.helpers.map(
+        (key) => `${helperMapName[key]} as ${helper(key)}`
+      )}} from "@mw/runtime-core"`
     );
+    newLine();
   }
-  newLine();
-  push(`return function render(_ctx) {`);
+  push(`export `);
 }
 function createCodegenContext(ast) {
   const context = {
@@ -2275,6 +2265,8 @@ export {
   Teleport,
   Text,
   Transition,
+  _createElementBlock,
+  _openBlock,
   activeEffect,
   closeBlock,
   compile,
@@ -2324,14 +2316,4 @@ export {
   watch,
   watchEffect
 };
-/*! Bundled license information:
-
-@vue/shared/dist/shared.esm-bundler.js:
-  (**
-  * @vue/shared v3.5.13
-  * (c) 2018-present Yuxi (Evan) You and Vue contributors
-  * @license MIT
-  **)
-  (*! #__NO_SIDE_EFFECTS__ *)
-*/
 //# sourceMappingURL=runtime-dom.js.map

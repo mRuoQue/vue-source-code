@@ -1,4 +1,4 @@
-import { extend } from "@vue/shared";
+import { extend } from "@mw/shared";
 
 import { nodeOptions } from "./nodeOptions";
 import { patchProps } from "./patchProps";
@@ -10,6 +10,10 @@ const rendererOptions = extend(nodeOptions, { patchProps });
 // 自定义渲染器
 export const render = function (vnode, container) {
   return createRenderer(rendererOptions).render(vnode, container);
+};
+
+export const createApp = function (...args) {
+  return createRenderer(rendererOptions).createApp(...args);
 };
 
 export * from "@mw/runtime-core";

@@ -24,7 +24,12 @@ function generate(ast) {
 
   genFunction(ast, context);
 
+  const fnName = "render";
+  const args = ["_ctx", "_cache", "$props"];
+  push(`function ${fnName}(${args.join(",")}){`);
+
   indent();
+
   push(`return `);
 
   if (ast.codegenNode) {
@@ -36,6 +41,7 @@ function generate(ast) {
 
   deindent();
   push(`}`);
+
   return context.code;
 }
 
@@ -54,7 +60,7 @@ function genNode(node, context) {
       break;
     case NodeTypes.SIMPLE_EXPRESSION:
       genExpression(node, context);
-
+      break;
     case NodeTypes.VNODE_CALL:
       genVnodeCall(node, context);
       break;
@@ -80,7 +86,7 @@ function genVnodeCall(node, context) {
 
   push(`"div",`);
   push(`null,`);
-  push(`123,`);
+  push(`123`);
 
   if (isBlock) {
     push(`)`);
@@ -101,19 +107,23 @@ function genInterpolation(node, context) {
   push(`)`);
 }
 function genFunction(ast, context) {
-  const { push, indent, deindent, newLine } = context;
+  const { push, indent, deindent, newLine, helper } = context;
 
-  if (ast.helpers.length > 0) {
-    push(
-      `const {${ast.helpers.map(
-        (key) => `${helperMapName[key]}:${context.helper(key)}`
-      )}} = "./runtime-dom.js"`
-    );
-  }
+  push(`console.log(333)`);
 
   newLine();
 
-  push(`return function render(_ctx) {`);
+  if (ast.helpers.length > 0) {
+    push(
+      `import {${ast.helpers.map(
+        (key) => `${helperMapName[key]} as ${helper(key)}`
+      )}} from "@mw/runtime-core"`
+    );
+    newLine();
+  }
+
+  // deindent();
+  push(`export `);
 }
 
 function createCodegenContext(ast) {

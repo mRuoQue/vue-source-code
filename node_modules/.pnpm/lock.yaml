@@ -28,6 +28,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
 
+  packages/mwVue: {}
+
   packages/reactivity:
     dependencies:
       '@mw/shared':
@@ -42,9 +44,6 @@ importers:
 
   packages/runtime-dom:
     dependencies:
-      '@mw/compiler-core':
-        specifier: workspace:^
-        version: link:../compiler-core
       '@mw/runtime-core':
         specifier: workspace:*
         version: link:../runtime-core
