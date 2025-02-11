@@ -56,9 +56,9 @@ function createRootCodegenNode(ast, context) {
 
 function traverseNode(node, context) {
   context.currentNode = node;
-  let exits = []; // 处理完元素本文，可能倒序执行，回溯
-
   const transforms = context.transformNode;
+
+  let exits = []; // 处理完元素本文，可能倒序执行，回溯
 
   for (let i = 0; i < transforms.length; i++) {
     const transfrom = transforms[i];
@@ -69,8 +69,8 @@ function traverseNode(node, context) {
 
   switch (node.type) {
     case NodeTypes.ROOT:
-    // traverseChildren(node, context);
-    // break;
+      traverseChildren(node, context);
+      break;
     case NodeTypes.ELEMENT:
       for (let i = 0; i < node.children.length; i++) {
         context.parent = node;
@@ -94,6 +94,14 @@ function traverseNode(node, context) {
       exits[tail]();
     }
   }
+}
+
+export function traverseChildren(parent, context) {
+  parent.children.forEach((node, index) => {
+    context.parent = parent;
+    context.childIndex = index;
+    traverseNode(node, context);
+  });
 }
 
 // 创建模版转化上下文
@@ -197,23 +205,23 @@ function transformText(node, context) {
         return;
       }
 
-      for (let i = 0; i < children.length; i++) {
-        let args = [];
+      // for (let i = 0; i < children.length; i++) {
+      //   let args = [];
 
-        const child = children[i];
-        if (isText(child) || child.type === NodeTypes.COMPOUND_EXPRESSION) {
-          args.push(child);
-          if (child.type !== NodeTypes.TEXT) {
-            args.push(PatchFlags.TEXT);
-          }
-        }
+      //   const child = children[i];
+      //   if (isText(child) || child.type === NodeTypes.COMPOUND_EXPRESSION) {
+      //     args.push(child);
+      //     if (child.type !== NodeTypes.TEXT) {
+      //       args.push(PatchFlags.TEXT);
+      //     }
+      //   }
 
-        children[i] = {
-          type: NodeTypes.TEXT_CALL,
-          content: child,
-          codegenNode: createCallExpression(context, args),
-        };
-      }
+      //   children[i] = {
+      //     type: NodeTypes.TEXT_CALL,
+      //     content: child,
+      //     codegenNode: createCallExpression(context, args),
+      //   };
+      // }
     };
   }
 }

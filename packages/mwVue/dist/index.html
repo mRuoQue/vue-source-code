@@ -12,12 +12,15 @@
   <script>
     const { createApp, h, compile } = Mwvue;
 
-    const compileDom = compile(`<div>123</div>`);
+    const domApp = document.getElementById("app");
+    const compileDom = compile(`<div>
+      333
+      <div><div>444</div>555</div>
+      <div>666</div>
+      </div>`);
 
     const fn = new Function(compileDom);
-    console.log(fn());
 
-    const domApp = document.getElementById("app");
     const com = {
       setup() {
         return {};

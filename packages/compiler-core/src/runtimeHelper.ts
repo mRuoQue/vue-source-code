@@ -17,3 +17,5 @@ export const helperMapName = {
   [OPEN_BLOCK]: "openBlock",
   [CREATE_ELEMENT_BLOCK]: "createElementBlock",
 };
+
+export const globalModuleName = "Mwvue";
